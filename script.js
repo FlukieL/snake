@@ -32,6 +32,7 @@ function generateFood() {
 generateFood();
 
 canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault(); // Prevent default touch behavior (scrolling)
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 });
