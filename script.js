@@ -19,6 +19,9 @@ let score = 0;
 let gameOver = false;
 let gameRunning = false; // Flag to track if the game is running
 
+let touchStartX = null;
+let touchStartY = null;
+
 function generateFood() {
     food = {
         x: Math.floor(Math.random() * (canvas.width / gridSize)),
@@ -27,6 +30,42 @@ function generateFood() {
 }
 
 generateFood();
+
+canvas.addEventListener('touchstart', (event) => {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+});
+
+canvas.addEventListener('touchend', (event) => {
+    if (!touchStartX || !touchStartY) return;
+
+    let touchEndX = event.changedTouches[0].clientX;
+    let touchEndY = event.changedTouches[0].clientY;
+
+    let diffX = touchEndX - touchStartX;
+    let diffY = touchEndY - touchStartY;
+
+    // Determine swipe direction
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal swipe
+        if (diffX > 0) {
+            direction = (direction !== 'left') ? 'right' : direction;
+        } else {
+            direction = (direction !== 'right') ? 'left' : direction;
+        }
+    } else {
+        // Vertical swipe
+        if (diffY > 0) {
+            direction = (direction !== 'up') ? 'down' : direction;
+        } else {
+            direction = (direction !== 'down') ? 'up' : direction;
+        }
+    }
+
+    // Reset touch start coordinates
+    touchStartX = null;
+    touchStartY = null;
+});
 
 document.addEventListener('keydown', (event) => {
     if (gameOver) {
