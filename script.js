@@ -34,12 +34,14 @@ function generateFood() {
 generateFood();
 
 document.addEventListener('touchstart', (event) => {
+    console.log('Touchstart event detected!');
     event.preventDefault(); // Prevent default touch behavior (scrolling)
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 });
 
 document.addEventListener('touchmove', (event) => {
+    console.log('Touchmove event detected!');
     event.preventDefault();
     if (!touchStartX || !touchStartY) return;
 
@@ -56,6 +58,7 @@ document.addEventListener('touchmove', (event) => {
         // Vertical swipe
         direction = diffY > 0 ? 'down' : 'up';
     }
+    console.log('Direction:', direction);
 
     // Reset touch start coordinates after processing the move
     touchStartX = null;
