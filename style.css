@@ -1,55 +1,55 @@
+/* Basic styling - feel free to customize */
 body {
+    background-color: #333;
+    color: #eee;
+    font-family: 'Product Sans', sans-serif; /* Using the imported Google Font */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
-    background-color: #f0f0f0;
-    font-family: 'Product Sans', sans-serif;
-}
-
-html {
-    height: 100%; /* Ensure html takes full height */
 }
 
 #game-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-#menu, #gameOverScreen {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    background-color: #fff;
+    background-color: #222;
     padding: 20px;
-    border-radius: 5px;
+    border-radius: 10px;
+    text-align: center;
+    /* Style for touch interactions */
+    touch-action: manipulation; /* Prevent default touch behaviors */
 }
 
-#menu h1, #gameOverScreen h2 {
-    margin-bottom: 10px;
+canvas {
+    background-color: #000;
+    border: 4px solid #eee;
 }
 
-#startGame, #highScoreForm button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
+button {
+    background-color: #4CAF50; /* Green */
     border: none;
-    border-radius: 5px;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
     cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+/* Style the menu */
+#menu {
+    display: flex;
+    flex-direction: column; /* Arrange items vertically */
+    align-items: center; /* Center horizontally */
 }
 
 #gameOverMessage {
-    display: none; /* Initially hidden */
+    font-size: 1.5em;
+    color: red;
+    margin-top: 20px;
 }
-
-#gameCanvas {
-    /* Disable touch scrolling and resizing for the canvas */
-    touch-action: none;
-  }

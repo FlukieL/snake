@@ -10,6 +10,7 @@ const highScoreList = document.getElementById('highScoreList');
 const highScoreDisplay = document.getElementById('highScoreDisplay'); // Get the high score display element
 const backgroundMusic = document.getElementById('backgroundMusic'); // Get the background music element
 const gameOverSound = document.getElementById('gameOverSound'); // Get the game over sound element
+const gameContainer = document.getElementById('game-container'); // Get the game container
 
 const gridSize = 20;
 let snake = [{ x: 10, y: 10 }];
@@ -33,20 +34,26 @@ function generateFood() {
 
 generateFood();
 
-document.addEventListener('touchstart', (event) => {
-    console.log('Touchstart event detected!');
-    event.preventDefault(); // Prevent default touch behavior (scrolling)
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-});
+// Consolidated event listeners for touch and mouse
+gameContainer.addEventListener('touchstart', handleTouchStart, false);
+gameContainer.addEventListener('touchmove', handleTouchMove, false);
+gameContainer.addEventListener('mousedown', handleTouchStart, false);
+gameContainer.addEventListener('mousemove', handleTouchMove, false);
 
-document.addEventListener('touchmove', (event) => {
-    console.log('Touchmove event detected!');
+function handleTouchStart(event) {
+    event.preventDefault();
+    const touch = event.touches ? event.touches[0] : event;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+}
+
+function handleTouchMove(event) {
     event.preventDefault();
     if (!touchStartX || !touchStartY) return;
 
-    let touchEndX = event.touches[0].clientX; // Use touches[0] for touchmove
-    let touchEndY = event.touches[0].clientY;
+    const touch = event.touches ? event.touches[0] : event;
+    let touchEndX = touch.clientX;
+    let touchEndY = touch.clientY;
 
     let diffX = touchEndX - touchStartX;
     let diffY = touchEndY - touchStartY;
@@ -58,12 +65,11 @@ document.addEventListener('touchmove', (event) => {
         // Vertical swipe
         direction = diffY > 0 ? 'down' : 'up';
     }
-    console.log('Direction:', direction);
 
     // Reset touch start coordinates after processing the move
     touchStartX = null;
     touchStartY = null;
-});
+}
 
 document.addEventListener('keydown', (event) => {
     if (gameOver) {
@@ -75,10 +81,18 @@ document.addEventListener('keydown', (event) => {
         return; 
     } else {
         switch (event.key) {
-            case 'ArrowUp': direction = (direction !== 'down') ? 'up' : direction; break;
-            case 'ArrowDown': direction = (direction !== 'up') ? 'down' : direction; break;
-            case 'ArrowLeft': direction = (direction !== 'right') ? 'left' : direction; break;
-            case 'ArrowRight': direction = (direction !== 'left') ? 'right' : direction; break;
+            case 'ArrowUp':
+                if (direction !== 'down') direction = 'up'; 
+                break;
+            case 'ArrowDown': 
+                if (direction !== 'up') direction = 'down';
+                break;
+            case 'ArrowLeft':
+                if (direction !== 'right') direction = 'left';
+                break;
+            case 'ArrowRight':
+                if (direction !== 'left') direction = 'right';
+                break;
         }
     }
 });
