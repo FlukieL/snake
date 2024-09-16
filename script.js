@@ -371,4 +371,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     displayHighScores();
 
     startGameWithGamepad(); // Check for a gamepad on page load
+
+    // Add event listener to the game container to regain focus when clicked
+    gameContainer.addEventListener('click', () => {
+        gameContainer.focus();
+    });
 });
