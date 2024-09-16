@@ -8,6 +8,8 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    /* Style for touch interactions */
+    touch-action: manipulation; /* Prevent default touch behaviors */
 }
 
 #game-container {
@@ -15,8 +17,6 @@ body {
     padding: 20px;
     border-radius: 10px;
     text-align: center;
-    /* Style for touch interactions */
-    touch-action: manipulation; /* Prevent default touch behaviors */
 }
 
 canvas {

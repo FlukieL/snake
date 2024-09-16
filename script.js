@@ -97,6 +97,11 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// Add event listener for gamepad connection
+window.addEventListener('gamepadconnected', (event) => {
+    console.log('Gamepad connected:', event.gamepad);
+});
+
 function gameLoop() {
     if (!gameOver && gameRunning) {
         menu.style.display = 'none';
@@ -117,6 +122,40 @@ function gameLoop() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const head = { x: snake[0].x, y: snake[0].y };
+
+    // ... (rest of the game loop code)
+
+    // Check for gamepad input
+    const gamepad = navigator.getGamepads()[0]; // Get the first connected gamepad
+    if (gamepad) {
+        // Check if the 'a' button is pressed
+        if (gamepad.buttons[0].pressed) {
+            // Start the game if not already running
+            if (!gameRunning) {
+                gameRunning = true;
+                gameLoop();
+                backgroundMusic.play(); // Start music when the game starts
+            } 
+            // If the game is already running, pressing 'a' submits the score
+            else if (gameOver) {
+                // Trigger the form submission
+                highScoreForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        }
+
+        // Example: Use gamepad axes for movement
+        const horizontalAxis = gamepad.axes[0]; // Left stick horizontal (-1 left, 1 right)
+        const verticalAxis = gamepad.axes[1]; // Left stick vertical (-1 up, 1 down)
+
+        if (Math.abs(horizontalAxis) > 0.5) {
+            direction = horizontalAxis > 0 ? 'right' : 'left';
+        }
+        if (Math.abs(verticalAxis) > 0.5) {
+            direction = verticalAxis > 0 ? 'down' : 'up';
+        }
+    }
+
+    // ... (continue with the rest of the game loop)
 
     switch (direction) {
         case 'up': head.y--; break;
