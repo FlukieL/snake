@@ -1,5 +1,8 @@
 // WebGL porting logic
 
+// Declare a global variable to store the score
+var currentScore = 0;
+
 const canvas = document.getElementById('gameCanvas');
 const gl = canvas.getContext('webgl');
 
@@ -134,6 +137,12 @@ const foodBuffer = createFoodBuffer(gl);
 
 // Draw the scene repeatedly
 function render() {
+  // Display the score
+  const ctx = canvas.getContext('2d'); // Get the 2D context
+  ctx.font = "16px 'Product Sans', sans-serif";
+  ctx.fillStyle = "white";
+  ctx.fillText("Score: " + currentScore, 10, 20); // Display the score at the top-left corner
+
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black
   gl.clearDepth(1.0); // Clear everything
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         snake.unshift(head);
 
         if (head.x === food.x && head.y === food.y) {
-            score++;
+            score++; // Update the global score variable
             setTimeout(() => {
                 eatingSound.currentTime = 0; // Reset the sound to the beginning
                 eatingSound.play(); // Play the eating sound
@@ -231,6 +231,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         } else {
             snake.pop();
         }
+        // Display the score
+        ctx.font = "16px 'Product Sans', sans-serif";
+        ctx.fillStyle = "white";
+        ctx.fillText("Score: " + score, 10, 20); // Display the score at the top-left corner
 
         setTimeout(() => {
             requestAnimationFrame(gameLoop);
