@@ -6,11 +6,11 @@ body {
     margin: 0;
     background-color: #f0f0f0;
     font-family: 'Product Sans', sans-serif;
-    overflow: hidden; /* Prevent scrolling */
 }
 
 html {
     height: 100%; /* Ensure html takes full height */
+    overflow: hidden; /* Prevent scrolling */
 }
 
 #menu, #gameOverScreen {
