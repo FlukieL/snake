@@ -16,6 +16,10 @@
         <br>
         <a href="https://github.com/FlukieL/snake" target="_blank">GitHub</a>
         <p id="gameOverMessage"></p>
+        <div id="instructions">
+            <h2>How to Play:</h2>
+            <p id="controlScheme"></p>
+        </div>
     </div>
     <div id="gameOverScreen" style="display: none;">
         <h2>Game Over!</h2>
@@ -31,7 +35,8 @@
     <canvas id="gameCanvas" width="400" height="400"></canvas>
     <audio src="SnakeGameMusic.mp3" loop preload="auto" id="backgroundMusic"></audio>
     <audio src="GameOverSound.mp3" preload="auto" id="gameOverSound"></audio>
-    </div>
+    <audio src="EatingSound.mp3" preload="auto" id="eatingSound"></audio>
+</div>
     <script src="script.js"></script>
 </body>
 </html>

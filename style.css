@@ -53,3 +53,12 @@ button:hover {
     color: red;
     margin-top: 20px;
 }
+
+/* Style for the control scheme */
+#controlScheme {
+    background-color: #eee; /* Light gray background */
+    color: #222; /* Dark gray text */
+    padding: 10px; /* Add some padding */
+    margin-top: 10px; /* Add some space above */
+    border-radius: 5px; /* Rounded corners */
+}
