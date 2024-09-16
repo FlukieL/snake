@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     const touchThreshold = 30; // Minimum distance for a swipe to register
 
+    // Function to resize the canvas to 80% of the window
+    function resizeCanvas() {
+        canvas.width = Math.floor(window.innerWidth * 0.8 / gridSize) * gridSize;
+        canvas.height = Math.floor(window.innerHeight * 0.8 / gridSize) * gridSize;
+    }
+
+    // Call resizeCanvas initially and on window resize
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
     function generateFood() {
         food = {
             x: Math.floor(Math.random() * (canvas.width / gridSize)),
