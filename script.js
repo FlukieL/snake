@@ -90,30 +90,51 @@ document.addEventListener('DOMContentLoaded', (event) => {
         touchStartY = null;
     }
 
+    // Separate event listeners for WASD and arrow keys
     document.addEventListener('keydown', (event) => {
         if (gameOver) {
-            // If game is over, Enter or Space restarts the game
             if (event.key === 'Enter' || event.key === ' ') {
                 resetGame();
             }
         } else if (!gameRunning) {
-            return; 
+            return;
         } else {
             switch (event.key) {
-                case 'ArrowUp':
                 case 'w':
-                    if (direction !== 'down') direction = 'up'; 
+                    if (direction !== 'down') direction = 'up';
                     break;
-                case 'ArrowDown': 
                 case 's':
                     if (direction !== 'up') direction = 'down';
                     break;
-                case 'ArrowLeft':
                 case 'a':
                     if (direction !== 'right') direction = 'left';
                     break;
-                case 'ArrowRight':
                 case 'd':
+                    if (direction !== 'left') direction = 'right';
+                    break;
+            }
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (gameOver) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                resetGame();
+            }
+        } else if (!gameRunning) {
+            return;
+        } else {
+            switch (event.key) {
+                case 'ArrowUp':
+                    if (direction !== 'down') direction = 'up';
+                    break;
+                case 'ArrowDown':
+                    if (direction !== 'up') direction = 'down';
+                    break;
+                case 'ArrowLeft':
+                    if (direction !== 'right') direction = 'left';
+                    break;
+                case 'ArrowRight':
                     if (direction !== 'left') direction = 'right';
                     break;
             }
@@ -130,9 +151,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 const gamepad = navigator.getGamepads()[0];
                 if (gamepad && gamepad.buttons.some(button => button.pressed)) {
                     clearInterval(checkGamepadInput);
-                    gameRunning = true;
+                    gameRunning = true; // Set gameRunning to true here
                     gameLoop(); // Start the game loop
                     backgroundMusic.play();
+                    startGameButton.style.display = 'none'; // Hide the start button
                 }
             }, 100);
         }
@@ -148,6 +170,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (!gameOver && gameRunning) {
             menu.style.display = 'none';
             gameOverScreen.style.display = 'none';
+            startGameButton.style.display = 'none'; // Hide the button
         }
 
         if (gameOver) {
@@ -201,8 +224,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         if (head.x === food.x && head.y === food.y) {
             score++;
-            eatingSound.currentTime = 0; // Reset the sound to the beginning
-            eatingSound.play(); // Play the eating sound
+            setTimeout(() => {
+                eatingSound.currentTime = 0; // Reset the sound to the beginning
+                eatingSound.play(); // Play the eating sound
+            }, 50); 
             generateFood();
         } else {
             snake.pop();
@@ -266,13 +291,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     function resetGame() {
         gameOver = false;
-        gameRunning = false; // Stop the game loop
+        gameRunning = false; // Should be false here to prevent the game from immediately restarting
         snake = [{ x: 10, y: 10 }];
         direction = 'right';
         score = 0;
         generateFood();
         menu.style.display = 'block'; // Show the menu
         gameOverScreen.style.display = 'none'; // Hide the game over screen
+        startGameButton.style.display = 'block'; // Show the button
         displayHighScores(); // Update high score display on the main menu
         updateControlScheme(); // Update the control scheme
     }
@@ -309,11 +335,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     // Event listener for starting the game
-    startGameButton.addEventListener('click', () => {
+    const startGame = ()  => {
         gameRunning = true; // Start the game loop
         gameLoop();
         backgroundMusic.play(); // Start music when the game starts
-    });
+        startGameButton.style.display = 'none'; // Hide the button once the game starts
+    }
+    startGameButton.addEventListener('click', startGame);
 
     // Event listener for submitting a high score
     highScoreForm.addEventListener('submit', (event) => {
