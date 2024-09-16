@@ -22,6 +22,7 @@ body {
 canvas {
     background-color: #000;
     border: 4px solid #eee;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Add a subtle glow effect */
 }
 
 button {
@@ -52,13 +53,4 @@ button:hover {
     font-size: 1.5em;
     color: red;
     margin-top: 20px;
-}
-
-/* Style for the control scheme */
-#controlScheme {
-    background-color: #eee; /* Light gray background */
-    color: #222; /* Dark gray text */
-    padding: 10px; /* Add some padding */
-    margin-top: 10px; /* Add some space above */
-    border-radius: 5px; /* Rounded corners */
 }
