@@ -28,11 +28,15 @@ function updateControlScheme() {
     // No need to reset to WASD if no gamepad or touch is detected, as it's already the default
 }
 
+// Declare snake and food globally
+let snake;
+let food;
+
 // Wait for the DOM to fully load before executing the rest of the script
 document.addEventListener('DOMContentLoaded', (event) => {
     const gridSize = 20;
-    let snake = [{ x: 10, y: 10 }];
-    let food = {};
+    snake = [{ x: 10, y: 10 }];
+    food = {};
     let direction = 'right';
     let score = 0;
     let gameOver = false;
@@ -73,6 +77,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const touch = event.touches ? event.touches[0] : event;
         let touchEndX = touch.clientX;
         let touchEndY = touch.clientY;
+
 
         let diffX = touchEndX - touchStartX;
         let diffY = touchEndY - touchStartY;
@@ -182,14 +187,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             return;
         }
 
-        // Set canvas background to white
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         const head = { x: snake[0].x, y: snake[0].y };
-
-        // ... (rest of the game loop code)
-
+        
         // Check for gamepad input
         const gamepad = navigator.getGamepads()[0]; // Get the first connected gamepad
         if (gamepad) {
@@ -232,48 +231,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         } else {
             snake.pop();
         }
-
-        // Drawing the snake
-        snake.forEach((segment, index) => {
-            ctx.fillStyle = index === 0 ? '#a5d6a7' : 'green'; // Head is light green, body is green
-            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-
-            // Draw eyes and tongue only for the head
-            if (index === 0) {
-                // Eyes - Adjust position based on direction
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                if (direction === 'up') {
-                    ctx.arc((segment.x + 0.25) * gridSize, (segment.y + 0.75) * gridSize, gridSize / 8, 0, 2 * Math.PI); // Left eye
-                    ctx.arc((segment.x + 0.75) * gridSize, (segment.y + 0.75) * gridSize, gridSize / 8, 0, 2 * Math.PI); // Right eye
-                } else if (direction === 'down') {
-                    ctx.arc((segment.x + 0.25) * gridSize, (segment.y + 0.25) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                    ctx.arc((segment.x + 0.75) * gridSize, (segment.y + 0.25) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                } else if (direction === 'left') {
-                    ctx.arc((segment.x + 0.75) * gridSize, (segment.y + 0.25) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                    ctx.arc((segment.x + 0.75) * gridSize, (segment.y + 0.75) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                } else if (direction === 'right') {
-                    ctx.arc((segment.x + 0.25) * gridSize, (segment.y + 0.25) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                    ctx.arc((segment.x + 0.25) * gridSize, (segment.y + 0.75) * gridSize, gridSize / 8, 0, 2 * Math.PI);
-                }
-                ctx.fill();
-
-                // Tongue - Adjust position and size based on direction
-                ctx.fillStyle = 'red';
-                if (direction === 'up') {
-                    ctx.fillRect((segment.x + 0.5) * gridSize - gridSize / 10, (segment.y) * gridSize, gridSize / 5, gridSize / 4);
-                } else if (direction === 'down') {
-                    ctx.fillRect((segment.x + 0.5) * gridSize - gridSize / 10, (segment.y + 0.8) * gridSize, gridSize / 5, gridSize / 4);
-                } else if (direction === 'left') {
-                    ctx.fillRect((segment.x) * gridSize, (segment.y + 0.5) * gridSize - gridSize / 10, gridSize / 4, gridSize / 5);
-                } else if (direction === 'right') {
-                    ctx.fillRect((segment.x + 0.8) * gridSize, (segment.y + 0.5) * gridSize - gridSize / 10, gridSize / 4, gridSize / 5);
-                }
-            }
-        });
-
-        ctx.fillStyle = 'red';
-        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
 
         setTimeout(() => {
             requestAnimationFrame(gameLoop);
