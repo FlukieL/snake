@@ -48,3 +48,8 @@ html {
 #gameOverMessage {
     display: none; /* Initially hidden */
 }
+
+#gameCanvas {
+    /* Disable touch scrolling and resizing for the canvas */
+    touch-action: none;
+  }

@@ -22,6 +22,8 @@ let gameRunning = false; // Flag to track if the game is running
 let touchStartX = null;
 let touchStartY = null;
 
+const touchThreshold = 30; // Minimum distance for a swipe to register
+
 function generateFood() {
     food = {
         x: Math.floor(Math.random() * (canvas.width / gridSize)),
@@ -31,39 +33,31 @@ function generateFood() {
 
 generateFood();
 
-canvas.addEventListener('touchstart', (event) => {
+document.addEventListener('touchstart', (event) => {
     event.preventDefault(); // Prevent default touch behavior (scrolling)
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 });
 
-canvas.addEventListener('touchend', (event) => {
+document.addEventListener('touchmove', (event) => {
+    event.preventDefault();
     if (!touchStartX || !touchStartY) return;
 
-    let touchEndX = event.changedTouches[0].clientX;
-    let touchEndY = event.changedTouches[0].clientY;
+    let touchEndX = event.touches[0].clientX; // Use touches[0] for touchmove
+    let touchEndY = event.touches[0].clientY;
 
     let diffX = touchEndX - touchStartX;
     let diffY = touchEndY - touchStartY;
 
-    // Determine swipe direction
-    if (Math.abs(diffX) > Math.abs(diffY)) {
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > touchThreshold) {
         // Horizontal swipe
-        if (diffX > 0) {
-            direction = (direction !== 'left') ? 'right' : direction;
-        } else {
-            direction = (direction !== 'right') ? 'left' : direction;
-        }
-    } else {
+        direction = diffX > 0 ? 'right' : 'left';
+    } else if (Math.abs(diffY) > touchThreshold) {
         // Vertical swipe
-        if (diffY > 0) {
-            direction = (direction !== 'up') ? 'down' : direction;
-        } else {
-            direction = (direction !== 'down') ? 'up' : direction;
-        }
+        direction = diffY > 0 ? 'down' : 'up';
     }
 
-    // Reset touch start coordinates
+    // Reset touch start coordinates after processing the move
     touchStartX = null;
     touchStartY = null;
 });
