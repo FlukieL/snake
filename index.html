@@ -182,6 +182,7 @@
         .mute-button {
             background-color: #4CAF50; /* Green background for mute buttons */
         }
+
         .mute-button.muted {
             background-color: #808080; /* Gray background when muted */
         }
@@ -292,6 +293,8 @@
         let gamePaused = false;
         let gameLoopInterval;
         let directionQueue = []; // Queue to store direction changes
+        let lastFrameTime = 0; // Time of the last frame
+        const frameRate = 10; // Target frame rate (frames per second)
 
         let highScores = loadHighScores();
         let musicMuted = loadMuteState('musicMuted', false); // Load music mute state
@@ -315,8 +318,24 @@
             }
             gameMusic.loop = true;
             clearInterval(gameLoopInterval); // Clear any existing interval
-            gameLoopInterval = setInterval(update, 100);
+            lastFrameTime = 0; // Reset last frame time
+            requestAnimationFrame(gameLoop); // Start the game loop
             pauseScreen.style.display = 'none'; // Hide pause screen
+        }
+
+        function gameLoop(currentTime) {
+            if (!gameOver && !gamePaused) { // Only update if not game over or paused
+                // Calculate time difference since last frame
+                const deltaTime = currentTime - lastFrameTime;
+
+                // Update game state at the target frame rate
+                if (deltaTime >= 1000 / frameRate) {
+                    update();
+                    lastFrameTime = currentTime - (deltaTime % (1000 / frameRate)); // Adjust for smoother animation
+                }
+            }
+
+            requestAnimationFrame(gameLoop); // Request the next frame
         }
 
         function resizeCanvas() {
@@ -351,8 +370,6 @@
         }
 
         function update() {
-            if (gameOver || gamePaused) return;
-
             // Get the next direction from the queue, if available
             if (directionQueue.length > 0) {
                 const newDirection = directionQueue.shift();
@@ -444,7 +461,6 @@
             gameOverScreen.style.display = 'none';
             updateHighScores(score);
             initializeGame();
-            update();
         });
 
         startButton.addEventListener('click', () => {
@@ -538,7 +554,6 @@
                     gameOverScreen.style.display = 'none';
                     updateHighScores(score);
                     initializeGame();
-                    update();
                 }
                 // Pause Button (Example: Button 9 / Start)
                 if (gamepad.buttons[9].pressed && !gameOver) {
@@ -547,7 +562,7 @@
             }
         }
 
-        setInterval(handleGamepad, 100); // Check gamepad input every 100ms
+        setInterval(handleGamepad, 50); // Check gamepad input every 50ms
 
         function loadHighScores() {
             let storedHighScores = localStorage.getItem('highScores');
