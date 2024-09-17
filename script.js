@@ -12,6 +12,9 @@ const backgroundMusic = document.getElementById('backgroundMusic');
 const gameOverSound = document.getElementById('gameOverSound');
 const gameContainer = document.getElementById('game-container');
 const eatingSound = document.getElementById('eatingSound');
+const gameSpeedInput = document.getElementById('gameSpeed');
+const gridSizeInput = document.getElementById('gridSize');
+const muteMusicCheckbox = document.getElementById('muteMusic');
 
 let snake;
 let food;
@@ -19,7 +22,8 @@ let score;
 let gameOver;
 let gameRunning;
 
-const gridSize = 20;
+let gridSize = 20;
+let gameSpeed = 100; 
 let direction = 'right';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,15 +40,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', handleKeyPress);
     gameContainer.addEventListener('touchstart', handleTouchStart, false);
     gameContainer.addEventListener('touchmove', handleTouchMove, false);
-
     displayHighScores();
+
+    // Mute music checkbox event listener
+    muteMusicCheckbox.addEventListener('change', () => {
+        backgroundMusic.muted = muteMusicCheckbox.checked;
+    });
+});
+
+gameSpeedInput.addEventListener('input', () => {
+    updateGameSpeed();
+});
+gridSizeInput.addEventListener('input', () => {
+    updateGridSize();
 });
 
 function startGame() {
     resetGame();
     gameRunning = true; 
     gameLoop();
-    backgroundMusic.play();
+    if (!muteMusicCheckbox.checked) { // Play music only if not muted
+        backgroundMusic.play();
+    }
     startGameButton.style.display = 'none'; 
 }
 
@@ -64,7 +81,7 @@ function gameLoop() {
 
     setTimeout(() => {
         requestAnimationFrame(gameLoop);
-    }, 100);
+    }, gameSpeed); 
 }
 
 function update() {
@@ -241,6 +258,14 @@ function handleTouchMove(event) {
 
     touchStartX = null;
     touchStartY = null;
+}
+function updateGameSpeed(){
+    gameSpeed = (11 - gameSpeedInput.value) * 10; // Adjust the formula for desired speed range
+}
+function updateGridSize() {
+gridSize = parseInt(gridSizeInput.value, 10);
+canvas.width = gridSize * 20; // Adjust canvas width based on grid size
+canvas.height = gridSize * 20; // Adjust canvas height based on grid size
 }
 
 function drawSnake() {
