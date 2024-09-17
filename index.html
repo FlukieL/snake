@@ -1,50 +1,648 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Snake Game</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Snake</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap') format('truetype');
+        }
+
+        body {
+            background-color: #f0f0f0; /* Light mode background color */
+            color: #333; /* Light mode text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'CustomFont', monospace;
+            position: relative; /* To position the pause button */
+        }
+
+        canvas {
+            background-color: #fff; /* Light mode canvas color */
+            border: 4px solid #333; /* Light mode border color */
+            position: absolute;
+            display: none;
+        }
+
+        #gameOverScreen, #startGameScreen, #pauseScreen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+
+        #gameOverScreen, #pauseScreen {
+            display: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px 0; /* Add some space between buttons */
+        }
+
+        #highScoreDisplay {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Logo Container */
+        .logo-container {
+            width: 200px; /* Adjust as needed */
+            height: 200px; /* Adjust as needed */
+            margin-bottom: 30px;
+            border: 4px solid white; /* Example border */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Hide image overflow */
+            animation: logoAnimation 1s ease-in-out;
+        }
+
+        .logo-container img {
+            width: auto; /* Allow image to scale down to fit */
+            height: 100%; /* Image takes full height of the container */
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #333; /* Dark mode background color */
+                color: #f0f0f0; /* Dark mode text color */
+            }
+
+            canvas {
+                background-color: #000; /* Dark mode canvas color */
+                border: 4px solid #fff; /* Dark mode border color */
+            }
+        }
+
+        #highScoreInput {
+            margin-bottom: 10px;
+        }
+
+        .scoreboard {
+            margin-bottom: 20px;
+        }
+
+        .scoreboard ol {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .scoreboard li {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        @keyframes logoAnimation {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Apply animation to start game screen */
+        #startGameScreen {
+            animation: gameStartAnimation 1s ease-in-out;
+        }
+
+        @keyframes gameStartAnimation {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Pause Button for Touch Devices */
+        #pauseButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none; /* Hidden by default, shown for touch devices */
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        /* Pause Screen Styles */
+        #pauseScreen h2 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        /* Links styling */
+        #startGameScreen a {
+            color: white;
+            text-decoration: none;
+            margin: 10px 0; /* Add some space between links */
+            display: block; /* Make links take up full width */
+        }
+
+        #startGameScreen a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mute Button Styles */
+        .mute-button {
+            background-color: #4CAF50; /* Green background for mute buttons */
+        }
+        .mute-button.muted {
+            background-color: #808080; /* Gray background when muted */
+        }
+
+        /* Score Counter Styles */
+        #scoreCounter {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3em;
+            color: white;
+            text-shadow: 0 0 5px black;
+            display: none; /* Initially hidden */
+        }
+
+        .animateScore {
+            animation: scoreAnimation 0.3s ease-in-out;
+        }
+
+        @keyframes scoreAnimation {
+            0% {
+                transform: translateX(-50%) scale(1);
+            }
+
+            50% {
+                transform: translateX(-50%) scale(1.2);
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1);
+            }
+        }
+    </style>
 </head>
+
 <body>
-<div id="game-container">
-    <div id="menu">
-        <img src="logo.jpg" alt="Snake Game Logo" style="width: 40%;"> 
-        <div id="highScoreDisplay"></div> <button id="startGame">Start Game</button>
-        <br>
-        <p></p>
-        <a href="https://github.com/FlukieL/snake" target="_blank">GitHub</a>
-        <p id="gameOverMessage"></p>
-        <!-- <div id="instructions">
-            <h3>Settings</h3>
-            <label for="gameSpeed">Game Speed:</label>
-            <input type="range" id="gameSpeed" min="1" max="10" value="5">
-            <br>
-            <label for="gridSize">Grid Size:</label>
-            <input type="range" id="gridSize" min="10" max="30" value="20">
-            <br>
-            <input type="checkbox" id="muteMusic">
-            <label for="muteMusic">Mute Music</label> -->
+    <div id="startGameScreen">
+        <div class="logo-container">
+            <img src="logo.jpg" alt="Snake Game Logo">
         </div>
+        <div class="scoreboard">
+            <ol id="highScoreList">
+            </ol>
+        </div>
+        <button id="startButton">Play Game</button>
+        <a href="https://github.com/FlukieL/snake" target="_blank">GitHub Repository</a>
+        <a href="https://links.lukeharper.co.uk" target="_blank">Links Page</a>
+        <button id="muteMusicButton" class="mute-button">Mute Music</button>
+        <button id="muteEffectsButton" class="mute-button">Mute Effects</button>
     </div>
-    <div id="gameOverScreen" style="display: none;">
-        <h2>Game Over!</h2>
-        <p>Your Score: <span id="finalScore"></span></p>
-        <form id="highScoreForm">
-            <label for="playerName">Enter your name:</label><br>
-            <input type="text" id="playerName" name="playerName"><br><br>
-            <button type="submit">Submit High Score</button>
-        </form>
-        <h3>High Scores</h3>
-        <ul id="highScoreList"></ul>
+
+    <div id="scoreCounter">0</div> <!-- Score Counter -->
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameOverScreen">
+        <h2>Game Over</h2>
+        <p>Score: <span id="finalScore"></span></p>
+        <div class="scoreboard">
+            <ol id="gameOverHighScoreList">
+            </ol>
+        </div>
+        <input type="text" id="highScoreInput" placeholder="Enter your name">
+        <button id="restartButton">Play Again</button>
+        <button id="muteMusicGameOverButton" class="mute-button">Mute Music</button>
+        <button id="muteEffectsGameOverButton" class="mute-button">Mute Effects</button>
     </div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <audio src="SnakeGameMusic.mp3" loop preload="auto" id="backgroundMusic"></audio>
-    <audio src="GameOverSound.mp3" preload="auto" id="gameOverSound"></audio>
-    <audio src="EatingSound.mp3" preload="auto" id="eatingSound"></audio>
-</div>
-    <script src="script.js"></script>
+
+    <div id="pauseScreen">
+        <h2>Paused</h2>
+        <button id="muteMusicPauseButton" class="mute-button">Mute Music</button>
+        <button id="muteEffectsPauseButton" class="mute-button">Mute Effects</button>
+    </div>
+
+    <button id="pauseButton">Pause</button> <!-- Pause button for touch devices -->
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startGameScreen = document.getElementById('startGameScreen');
+        const pauseScreen = document.getElementById('pauseScreen');
+        const finalScore = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const startButton = document.getElementById('startButton');
+        const highScoreList = document.getElementById('highScoreList');
+        const gameOverHighScoreList = document.getElementById('gameOverHighScoreList');
+        const highScoreInput = document.getElementById('highScoreInput');
+        const scoreCounter = document.getElementById('scoreCounter'); // Score counter element
+        const eatingSound = new Audio('EatingSound.mp3');
+        const gameOverSound = new Audio('GameOverSound.mp3');
+        const gameMusic = new Audio('SnakeGameMusic.mp3');
+        const pauseButton = document.getElementById('pauseButton');
+
+        // Mute buttons
+        const muteMusicButton = document.getElementById('muteMusicButton');
+        const muteEffectsButton = document.getElementById('muteEffectsButton');
+        const muteMusicGameOverButton = document.getElementById('muteMusicGameOverButton');
+        const muteEffectsGameOverButton = document.getElementById('muteEffectsGameOverButton');
+        const muteMusicPauseButton = document.getElementById('muteMusicPauseButton');
+        const muteEffectsPauseButton = document.getElementById('muteEffectsPauseButton');
+
+        let gridSize = 20;
+        let snake = [{ x: 10, y: 10 }];
+        let food = {};
+        let direction = 'right';
+        let score = 0;
+        let gameOver = false;
+        let gamePaused = false;
+        let gameLoopInterval;
+        let directionQueue = []; // Queue to store direction changes
+
+        let highScores = loadHighScores();
+        let musicMuted = loadMuteState('musicMuted', false); // Load music mute state
+        let effectsMuted = loadMuteState('effectsMuted', false); // Load effects mute state
+
+        // Update button states on load
+        updateMuteButtonStates();
+
+        function initializeGame() {
+            gameOver = false;
+            gamePaused = false;
+            snake = [{ x: 10, y: 10 }];
+            direction = 'right';
+            directionQueue = []; // Reset direction queue
+            score = 0;
+            scoreCounter.textContent = score; // Reset score counter
+            generateFood();
+            gameMusic.currentTime = 0;
+            if (!musicMuted) {
+                gameMusic.play();
+            }
+            gameMusic.loop = true;
+            clearInterval(gameLoopInterval); // Clear any existing interval
+            gameLoopInterval = setInterval(update, 100);
+            pauseScreen.style.display = 'none'; // Hide pause screen
+        }
+
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth, window.innerHeight) * 0.8; // 80% of smaller dimension
+            canvas.height = canvas.width;
+            gridSize = canvas.width / 20; // Adjust grid size based on canvas size
+        }
+
+        function generateFood() {
+            food = {
+                x: Math.floor(Math.random() * (canvas.width / gridSize)),
+                y: Math.floor(Math.random() * (canvas.height / gridSize))
+            };
+
+            // Check if food spawns on snake
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === food.x && snake[i].y === food.y) {
+                    generateFood(); // Regenerate if overlapping
+                    return; // Exit function after regeneration
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = i === 0 ? 'green' : 'lime';
+                ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize, gridSize);
+            }
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+        }
+
+        function update() {
+            if (gameOver || gamePaused) return;
+
+            // Get the next direction from the queue, if available
+            if (directionQueue.length > 0) {
+                const newDirection = directionQueue.shift();
+                if (isValidDirectionChange(newDirection)) {
+                    direction = newDirection;
+                }
+            }
+
+            const head = { x: snake[0].x, y: snake[0].y };
+            switch (direction) {
+                case 'up': head.y--; break;
+                case 'down': head.y++; break;
+                case 'left': head.x--; break;
+                case 'right': head.x++; break;
+            }
+            // Looping
+            if (head.x < 0) {
+                head.x = Math.floor(canvas.width / gridSize) - 1;
+            } else if (head.x >= canvas.width / gridSize) {
+                head.x = 0;
+            } else if (head.y < 0) {
+                head.y = Math.floor(canvas.height / gridSize) - 1;
+            } else if (head.y >= canvas.height / gridSize) {
+                head.y = 0;
+            }
+            if (checkCollision(head)) {
+                gameOver = true;
+                if (!effectsMuted) {
+                    gameOverSound.play();
+                }
+                gameMusic.pause();
+                finalScore.innerText = score;
+                gameOverScreen.style.display = 'flex';
+                highScoreInput.value = ''; // Clear the input field
+                return;
+            }
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreCounter.textContent = score; // Update score counter
+                scoreCounter.classList.add('animateScore'); // Add animation class
+                if (!effectsMuted) {
+                    eatingSound.play();
+                }
+                generateFood();
+            } else {
+                snake.pop();
+            }
+            draw();
+
+            // Remove animation class after animation ends
+            scoreCounter.addEventListener('animationend', () => {
+                scoreCounter.classList.remove('animateScore');
+            });
+        }
+
+        // Function to check if the new direction is valid (opposite direction is not allowed)
+        function isValidDirectionChange(newDirection) {
+            return !( (direction === 'up' && newDirection === 'down') ||
+                    (direction === 'down' && newDirection === 'up') ||
+                    (direction === 'left' && newDirection === 'right') ||
+                    (direction === 'right' && newDirection === 'left') );
+        }
+
+        function checkCollision(head) {
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Event Listeners
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !gameOver) {
+                togglePause();
+            } else {
+                switch (e.key) {
+                    case 'ArrowUp': case 'w': directionQueue.push('up'); break;
+                    case 'ArrowDown': case 's': directionQueue.push('down'); break;
+                    case 'ArrowLeft': case 'a': directionQueue.push('left'); break;
+                    case 'ArrowRight': case 'd': directionQueue.push('right'); break;
+                }
+            }
+        });
+
+        restartButton.addEventListener('click', () => {
+            gameOverScreen.style.display = 'none';
+            updateHighScores(score);
+            initializeGame();
+            update();
+        });
+
+        startButton.addEventListener('click', () => {
+            startGameScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            scoreCounter.style.display = 'block'; // Show score counter
+            initializeGame();
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            // Detect if touch device and show pause button
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                pauseButton.style.display = 'block';
+            }
+        });
+
+        pauseButton.addEventListener('click', togglePause);
+
+        function togglePause() {
+            gamePaused = !gamePaused;
+            pauseButton.textContent = gamePaused ? 'Resume' : 'Pause';
+            pauseScreen.style.display = gamePaused ? 'flex' : 'none';
+            if (gamePaused) {
+                gameMusic.pause();
+            } else {
+                if (!musicMuted) {
+                    gameMusic.play();
+                }
+            }
+        }
+
+        document.addEventListener('touchstart', handleTouchStart, false);
+        document.addEventListener('touchmove', handleTouchMove, false);
+        let xDown = null;
+        let yDown = null;
+
+        function handleTouchStart(evt) {
+            xDown = evt.touches[0].clientX;
+            yDown = evt.touches[0].clientY;
+        }
+
+        function handleTouchMove(evt) {
+            if (!xDown || !yDown) {
+                return;
+            }
+            const xUp = evt.touches[0].clientX;
+            const yUp = evt.touches[0].clientY;
+            const xDiff = xDown - xUp;
+            const yDiff = yDown - yUp;
+            if (Math.abs(xDiff) > Math.abs(yDiff)) {
+                if (xDiff > 0) {
+                    if (direction !== 'right') directionQueue.push('left');
+                } else {
+                    if (direction !== 'left') directionQueue.push('right');
+                }
+            } else {
+                if (yDiff > 0) {
+                    if (direction !== 'down') directionQueue.push('up');
+                } else {
+                    if (direction !== 'up') directionQueue.push('down');
+                }
+            }
+            xDown = null;
+            yDown = null;
+        }
+
+        // Game Controller
+        window.addEventListener('gamepadconnected', (event) => {
+            console.log('A gamepad connected:', event.gamepad);
+        });
+
+        window.addEventListener('gamepaddisconnected', (event) => {
+            console.log('A gamepad disconnected:', event.gamepad);
+        });
+
+        function handleGamepad() {
+            const gamepads = navigator.getGamepads();
+            if (gamepads[0]) {
+                const gamepad = gamepads[0];
+                // D-Pad
+                if (gamepad.buttons[12].pressed && direction !== 'down') directionQueue.push('up');
+                if (gamepad.buttons[13].pressed && direction !== 'up') directionQueue.push('down');
+                if (gamepad.buttons[14].pressed && direction !== 'right') directionQueue.push('left');
+                if (gamepad.buttons[15].pressed && direction !== 'left') directionQueue.push('right');
+                // Analog Stick
+                if (gamepad.axes[0] > 0.5 && direction !== 'left') directionQueue.push('right');
+                if (gamepad.axes[0] < -0.5 && direction !== 'right') directionQueue.push('left');
+                if (gamepad.axes[1] > 0.5 && direction !== 'up') directionQueue.push('down');
+                if (gamepad.axes[1] < -0.5 && direction !== 'down') directionQueue.push('up');
+                // Restart Button (Example: Button 0)
+                if (gamepad.buttons[0].pressed && gameOver) {
+                    gameOverScreen.style.display = 'none';
+                    updateHighScores(score);
+                    initializeGame();
+                    update();
+                }
+                // Pause Button (Example: Button 9 / Start)
+                if (gamepad.buttons[9].pressed && !gameOver) {
+                    togglePause();
+                }
+            }
+        }
+
+        setInterval(handleGamepad, 100); // Check gamepad input every 100ms
+
+        function loadHighScores() {
+            let storedHighScores = localStorage.getItem('highScores');
+            return storedHighScores ? JSON.parse(storedHighScores) : [];
+        }
+
+        function saveHighScores() {
+            localStorage.setItem('highScores', JSON.stringify(highScores));
+        }
+
+        function displayHighScores() {
+            highScoreList.innerHTML = '';
+            gameOverHighScoreList.innerHTML = '';
+            const topThreeScores = highScores.slice(0, 3);
+            topThreeScores.map(scoreData => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${scoreData.name}: ${scoreData.score}`;
+                highScoreList.appendChild(listItem);
+                const gameoverListItem = listItem.cloneNode(true);
+                gameOverHighScoreList.appendChild(gameoverListItem);
+            })
+        }
+
+        function updateHighScores(newScore) {
+            let playerName = highScoreInput.value.trim();
+            playerName = playerName ? playerName : 'Unknown Player';
+            highScores.push({ name: playerName, score: newScore });
+            highScores.sort((a, b) => b.score - a.score);
+            highScores = highScores.slice(0, 3);
+            saveHighScores();
+            displayHighScores();
+        }
+
+        displayHighScores();
+
+        // Mute/Unmute Functions
+        function toggleMusicMute() {
+            musicMuted = !musicMuted;
+            saveMuteState('musicMuted', musicMuted); // Save music mute state
+            updateMuteButtonStates(); // Update button states
+            if (musicMuted) {
+                gameMusic.pause();
+            } else {
+                gameMusic.play();
+            }
+        }
+
+        function toggleEffectsMute() {
+            effectsMuted = !effectsMuted;
+            saveMuteState('effectsMuted', effectsMuted); // Save effects mute state
+            updateMuteButtonStates(); // Update button states
+        }
+
+        // Function to update the text and styling of mute buttons
+        function updateMuteButtonStates() {
+            // Music buttons
+            const musicButtonText = musicMuted ? 'Unmute Music' : 'Mute Music';
+            muteMusicButton.textContent = musicButtonText;
+            muteMusicGameOverButton.textContent = musicButtonText;
+            muteMusicPauseButton.textContent = musicButtonText;
+            // Add or remove 'muted' class based on musicMuted state
+            muteMusicButton.classList.toggle('muted', musicMuted);
+            muteMusicGameOverButton.classList.toggle('muted', musicMuted);
+            muteMusicPauseButton.classList.toggle('muted', musicMuted);
+
+            // Effects buttons
+            const effectsButtonText = effectsMuted ? 'Unmute Effects' : 'Mute Effects';
+            muteEffectsButton.textContent = effectsButtonText;
+            muteEffectsGameOverButton.textContent = effectsButtonText;
+            muteEffectsPauseButton.textContent = effectsButtonText;
+            // Add or remove 'muted' class based on effectsMuted state
+            muteEffectsButton.classList.toggle('muted', effectsMuted);
+            muteEffectsGameOverButton.classList.toggle('muted', effectsMuted);
+            muteEffectsPauseButton.classList.toggle('muted', effectsMuted);
+        }
+
+        // Add event listeners to mute buttons
+        muteMusicButton.addEventListener('click', toggleMusicMute);
+        muteEffectsButton.addEventListener('click', toggleEffectsMute);
+        muteMusicGameOverButton.addEventListener('click', toggleMusicMute);
+        muteEffectsGameOverButton.addEventListener('click', toggleEffectsMute);
+        muteMusicPauseButton.addEventListener('click', toggleMusicMute);
+        muteEffectsPauseButton.addEventListener('click', toggleEffectsMute);
+
+        // Local Storage Functions
+        function loadMuteState(key, defaultValue) {
+            const storedValue = localStorage.getItem(key);
+            return storedValue !== null ? JSON.parse(storedValue) : defaultValue;
+        }
+
+        function saveMuteState(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+
+    </script>
 </body>
+
 </html>
