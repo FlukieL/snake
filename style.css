@@ -1,7 +1,4 @@
-@font-face {
-    font-family: 'CustomFont';
-    src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap') format('truetype');
-}
+@import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;700&display=swap');
 
 body {
     background-color: #f0f0f0; /* Light mode background color */
@@ -12,7 +9,7 @@ body {
     min-height: 100vh;
     margin: 0;
     overflow: hidden;
-    font-family: 'CustomFont', monospace;
+    font-family: 'Product Sans', sans-serif;
     position: relative; /* To position the pause button */
 }
 
@@ -232,3 +229,22 @@ button:hover {
 }
 
 /* Additional styles for smoother snake movement and food appearance can be added here */
+
+/* Main menu animations */
+#startGameScreen button, #startGameScreen a {
+    animation: menuButtonAnimation 1s ease-in-out;
+    opacity: 1;
+    animation-delay: calc(0.2s * var(--i));
+}
+
+@keyframes menuButtonAnimation {
+    0% {
+        transform: translateY(20px);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
