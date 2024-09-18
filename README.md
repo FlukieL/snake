@@ -10,4 +10,4 @@ This is a simple Snake game where the player controls a snake that moves around 
 2. Eat the food (represented by a red apple) to grow your snake and increase your score.
 3. Avoid colliding with the walls or the snake's own tail, as this will end the game.
 
-Play the game here: [snake.lukeharper.co.uk]((https://snake.lukeharper.co.uk)){:target="_blank"}
+Play the game here: [https://snake.lukeharper.co.uk](https://snake.lukeharper.co.uk)
