@@ -1,9 +1,9 @@
-const CACHE_NAME = 'snake-cache-v1';
+const CACHE_NAME = 'snake-cache-v2';
 const urlsToCache = [
     '/',
     '/index.html',
-    '/style.css', // Assuming you have a CSS file
-    '/script.js', // Assuming you have a JavaScript file
+    '/style.css',
+    '/script.js',
     '/SnakeGameMusic.mp3',
     '/GameOverSound.mp3',
     '/EatingSound.mp3'
