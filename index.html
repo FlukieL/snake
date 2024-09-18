@@ -4,6 +4,9 @@
 <head>
     <title>Snake</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="site.webmanifest">
+    <script src="sw.js"></script>
     <style>
         @font-face {
             font-family: 'CustomFont';
@@ -307,6 +310,7 @@
         const muteMusicPauseButton = document.getElementById('muteMusicPauseButton');
         const muteEffectsPauseButton = document.getElementById('muteEffectsPauseButton');
 
+
         let gridSize = 20;
         let snake = [{ x: 10, y: 10 }];
         let food = {};
@@ -422,6 +426,7 @@
                 gameOver = true;
                 if (!effectsMuted) {
                     gameOverSound.play();
+                    vibrateController([200, 100, 200]); // Vibrate on game over
                 }
                 gameMusic.pause();
                 finalScore.innerText = score;
@@ -436,6 +441,7 @@
                 scoreCounter.classList.add('animateScore'); // Add animation class
                 if (!effectsMuted) {
                     eatingSound.play();
+                    vibrateController(100); // Vibrate on eating
                 }
                 generateFood();
             } else {
@@ -552,37 +558,60 @@
         }
 
         // Game Controller
+        let previousGamepadState = {};
         window.addEventListener('gamepadconnected', (event) => {
             console.log('A gamepad connected:', event.gamepad);
+            previousGamepadState[event.gamepad.index] = {
+                buttons: event.gamepad.buttons.map(button => button.pressed),
+            };
         });
 
         window.addEventListener('gamepaddisconnected', (event) => {
             console.log('A gamepad disconnected:', event.gamepad);
+            delete previousGamepadState[event.gamepad.index];
         });
 
         function handleGamepad() {
             const gamepads = navigator.getGamepads();
-            if (gamepads[0]) {
-                const gamepad = gamepads[0];
-                // D-Pad
-                if (gamepad.buttons[12].pressed && direction !== 'down') directionQueue.push('up');
-                if (gamepad.buttons[13].pressed && direction !== 'up') directionQueue.push('down');
-                if (gamepad.buttons[14].pressed && direction !== 'right') directionQueue.push('left');
-                if (gamepad.buttons[15].pressed && direction !== 'left') directionQueue.push('right');
-                // Analog Stick
-                if (gamepad.axes[0] > 0.5 && direction !== 'left') directionQueue.push('right');
-                if (gamepad.axes[0] < -0.5 && direction !== 'right') directionQueue.push('left');
-                if (gamepad.axes[1] > 0.5 && direction !== 'up') directionQueue.push('down');
-                if (gamepad.axes[1] < -0.5 && direction !== 'down') directionQueue.push('up');
-                // Restart Button (Example: Button 0)
-                if (gamepad.buttons[0].pressed && gameOver) {
-                    gameOverScreen.style.display = 'none';
-                    updateHighScores(score);
-                    initializeGame();
-                }
-                // Pause Button (Example: Button 9 / Start)
-                if (gamepad.buttons[9].pressed && !gameOver) {
-                    togglePause();
+            for (const gamepad of gamepads) {
+                if (gamepad && gamepad.index in previousGamepadState) {
+                    // A Button (Start / Restart)
+                    if (gamepad.buttons[0].pressed && !previousGamepadState[gamepad.index].buttons[0]) {
+                        if (gameOver) {
+                            gameOverScreen.style.display = 'none';
+                            updateHighScores(score);
+                            initializeGame();
+                        } else if (startGameScreen.style.display === 'block') {
+                            startGameScreen.style.display = 'none';
+                            canvas.style.display = 'block';
+                            scoreCounter.style.display = 'block';
+                            initializeGame();
+                            resizeCanvas();
+                            window.addEventListener('resize', resizeCanvas);
+                        }
+                    }
+
+                    // Start Button (Pause)
+                    if (gamepad.buttons[9].pressed && !previousGamepadState[gamepad.index].buttons[9] && !gameOver) {
+                        togglePause();
+                    }
+
+                    // D-Pad
+                    if (gamepad.buttons[12].pressed && direction !== 'down') directionQueue.push('up');
+                    if (gamepad.buttons[13].pressed && direction !== 'up') directionQueue.push('down');
+                    if (gamepad.buttons[14].pressed && direction !== 'right') directionQueue.push('left');
+                    if (gamepad.buttons[15].pressed && direction !== 'left') directionQueue.push('right');
+
+                    // Analog Stick
+                    if (gamepad.axes[0] > 0.5 && direction !== 'left') directionQueue.push('right');
+                    if (gamepad.axes[0] < -0.5 && direction !== 'right') directionQueue.push('left');
+                    if (gamepad.axes[1] > 0.5 && direction !== 'up') directionQueue.push('down');
+                    if (gamepad.axes[1] < -0.5 && direction !== 'down') directionQueue.push('up');
+
+                    // Update previous gamepad state for next frame
+                    previousGamepadState[gamepad.index] = {
+                        buttons: gamepad.buttons.map(button => button.pressed),
+                    };
                 }
             }
         }
@@ -620,6 +649,7 @@
             saveHighScores();
             displayHighScores();
         }
+
 
         displayHighScores();
 
@@ -680,6 +710,14 @@
 
         function saveMuteState(key, value) {
             localStorage.setItem(key, JSON.stringify(value));
+        }
+
+        // Vibration function for controller
+        function vibrateController(duration) {
+            const gamepads = navigator.getGamepads();
+            if (gamepads[0] && gamepads[0].hapticActuators && gamepads[0].hapticActuators.length > 0) {
+                gamepads[0].hapticActuators[0].pulse(1.0, duration);
+            }
         }
 
     </script>
