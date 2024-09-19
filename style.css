@@ -28,7 +28,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
     margin: 0;
     padding: 0;
     font-family: 'Product Sans', sans-serif;
@@ -327,6 +327,7 @@ button:hover {
     align-items: center;
     color: white;
     text-align: center;
+    overflow-y: auto;
 }
 
 .menu-container {
@@ -390,6 +391,8 @@ h1 {
     .menu-container {
         width: 90%;
         padding: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
     }
 
     h1 {
@@ -408,5 +411,11 @@ h1 {
     #pauseButton {
         font-size: 14px;
         padding: 8px 16px;
+    }
+
+    .logo-container {
+        width: 150px;
+        height: 150px;
+        margin-bottom: 20px;
     }
 }

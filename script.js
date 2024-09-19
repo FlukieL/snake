@@ -80,11 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resizeCanvas() {
-        const maxSize = Math.min(window.innerWidth, window.innerHeight);
-        const size = maxSize * (window.innerWidth <= 768 ? 0.9 : 0.8); // 90% on mobile, 80% on desktop
-        canvas.width = size;
-        canvas.height = size;
-        gridSize = size / 20; // Adjust grid size based on canvas size
+        canvas.width = Math.min(window.innerWidth, window.innerHeight) * 0.8; // 80% of smaller dimension
+        canvas.height = canvas.width;
+        gridSize = canvas.width / 20; // Adjust grid size based on canvas size
     }
     
     function generateFood() {
