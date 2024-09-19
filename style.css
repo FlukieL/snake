@@ -30,9 +30,10 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    overflow: hidden;
+    padding: 0;
     font-family: 'Product Sans', sans-serif;
     position: relative; /* To position the pause button */
+    overflow: hidden;
 }
 
 canvas {
@@ -383,4 +384,29 @@ h1 {
 
 .links a:hover {
     color: var(--link-hover-color);
+}
+
+@media (max-width: 768px) {
+    .menu-container {
+        width: 90%;
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .menu-button {
+        font-size: 1rem;
+        padding: 0.6rem 1.2rem;
+    }
+
+    #scoreCounter {
+        font-size: 2em;
+    }
+
+    #pauseButton {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
 }

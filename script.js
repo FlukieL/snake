@@ -80,9 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resizeCanvas() {
-        canvas.width = Math.min(window.innerWidth, window.innerHeight) * 0.8; // 80% of smaller dimension
-        canvas.height = canvas.width;
-        gridSize = canvas.width / 20; // Adjust grid size based on canvas size
+        const maxSize = Math.min(window.innerWidth, window.innerHeight);
+        const size = maxSize * (window.innerWidth <= 768 ? 0.9 : 0.8); // 90% on mobile, 80% on desktop
+        canvas.width = size;
+        canvas.height = size;
+        gridSize = size / 20; // Adjust grid size based on canvas size
     }
     
     function generateFood() {
@@ -215,10 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeGame();
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        // Detect if touch device and show pause button
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            pauseButton.style.display = 'block';
-        }
+        // Show pause button on all devices
+        pauseButton.style.display = 'block';
     });
     
     pauseButton.addEventListener('click', togglePause);
