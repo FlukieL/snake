@@ -430,14 +430,14 @@ h1 {
 
 @media (max-width: 768px) {
     #pauseButton {
-        top: 20%;
+        top: 12%;
         right: 10px;
         font-size: 14px;
         padding: 8px 16px;
     }
 
     #scoreCounter {
-        top: 20%;
+        top: 12%;
         font-size: 24px;
     }
 
