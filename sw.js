@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-cache-v2';
+const CACHE_NAME = 'snake-cache-v3';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -6,8 +6,13 @@ const urlsToCache = [
     '/script.js',
     '/SnakeGameMusic.mp3',
     '/GameOverSound.mp3',
-    '/EatingSound.mp3'
-    // Add other assets to cache as needed
+    '/EatingSound.mp3',
+    '/favicon.ico',
+    '/android-chrome-192x192.png',
+    '/android-chrome-512x512.png',
+    '/apple-touch-icon.png',
+    '/favicon-16x16.png',
+    '/favicon-32x32.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -17,6 +22,20 @@ self.addEventListener('install', (event) => {
                 console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
     );
 });
 
