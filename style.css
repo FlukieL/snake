@@ -73,7 +73,7 @@ button:hover {
     justify-content: center;
     align-items: center;
     overflow: hidden; /* Hide image overflow */
-    animation: logoAnimation 1s ease-in-out;
+    animation: logoAnimation 3s ease-in-out infinite;
 }
 
 .logo-container img {
@@ -116,30 +116,73 @@ button:hover {
 }
 
 @keyframes logoAnimation {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-
-    100% {
+    0%, 100% {
         transform: scale(1);
-        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
     }
 }
 
-/* Apply animation to start game screen */
-#startGameScreen {
-    animation: gameStartAnimation 1s ease-in-out;
+@keyframes menuButtonAnimation {
+    0% {
+        transform: translateY(20px) scale(0.9);
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(-5px) scale(1.05);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes gameStartAnimation {
     0% {
         opacity: 0;
+        transform: scale(0.9);
     }
-
     100% {
         opacity: 1;
+        transform: scale(1);
     }
+}
+
+/* Apply animation to start game screen */
+#startGameScreen {
+    animation: gameStartAnimation 0.5s ease-out;
+}
+
+#startGameScreen button,
+#startGameScreen a,
+.scoreboard,
+.button-group,
+.links {
+    animation: menuButtonAnimation 0.5s ease-out backwards;
+}
+
+#startGameScreen button:nth-child(1) { animation-delay: 0.1s; }
+#startGameScreen button:nth-child(2) { animation-delay: 0.2s; }
+.scoreboard { animation-delay: 0.3s; }
+.button-group { animation-delay: 0.4s; }
+.links { animation-delay: 0.5s; }
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.menu-button:hover {
+    animation: bounce 0.5s ease infinite;
+}
+
+.menu-container {
+    transition: transform 0.3s ease;
+}
+
+.menu-container:hover {
+    transform: scale(1.02);
 }
 
 /* Pause Button for Touch Devices */
