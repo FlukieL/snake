@@ -3,6 +3,7 @@
 :root {
     --background-color: #f0f0f0;
     --text-color: #333;
+    --score-color:  #f0f0f0;
     --menu-background: rgba(255, 255, 255, 0.1);
     --button-background: #4CAF50;
     --button-hover: #45a049;
@@ -258,7 +259,7 @@ button:hover {
     left: 50%;
     transform: translateX(-50%);
     font-size: 32px;
-    color: var(--text-color);
+    color: var(--score-color);
     background-color: rgba(0, 0, 0, 0.5);
     padding: 5px 10px;
     border-radius: 5px;
@@ -444,4 +445,9 @@ h1 {
         max-width: 95vw;
         max-height: 95vw;
     }
+}
+.creator-info {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 20px;
 }
