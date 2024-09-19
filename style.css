@@ -361,3 +361,9 @@ h1 {
 .links a:hover {
     color: #45a049;
 }
+
+.creator-info {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 20px;
+}
