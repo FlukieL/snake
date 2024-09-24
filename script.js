@@ -228,10 +228,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Draw food
+        // Draw food (apple)
+        const appleCenterX = (food.x + 0.5) * gridSize;
+        const appleCenterY = (food.y + 0.5) * gridSize;
+        const appleRadius = gridSize / 2.5;
+
+        // Apple body
         ctx.fillStyle = 'red';
         ctx.beginPath();
-        ctx.arc((food.x + 0.5) * gridSize, (food.y + 0.5) * gridSize, gridSize / 2, 0, Math.PI * 2);
+        ctx.arc(appleCenterX, appleCenterY, appleRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Stem
+        ctx.strokeStyle = 'brown';
+        ctx.lineWidth = gridSize / 15;
+        ctx.beginPath();
+        ctx.moveTo(appleCenterX, appleCenterY - appleRadius);
+        ctx.lineTo(appleCenterX, appleCenterY - appleRadius - gridSize / 8);
+        ctx.stroke();
+
+        // Leaf
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.ellipse(
+            appleCenterX + gridSize / 16, 
+            appleCenterY - appleRadius - gridSize / 16, 
+            gridSize / 8, 
+            gridSize / 16, 
+            Math.PI / 4, 
+            0, 
+            Math.PI * 2
+        );
         ctx.fill();
     }
     
