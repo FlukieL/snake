@@ -113,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Draw eyes and tongue for the head
             if (i === 0) {
-                const eyeWidth = gridSize / 8;
-                const eyeHeight = gridSize / 5;
+                const eyeWidth = gridSize / 5;
+                const eyeHeight = gridSize / 8;
                 const eyeOffsetX = gridSize / 4;
                 const eyeOffsetY = gridSize / 6;
 
@@ -143,20 +143,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Draw eyes
                 ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(direction === 'left' || direction === 'right' ? eyeX : eyeX + eyeOffsetX * 2, eyeY2, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
-                ctx.fill();
+                if (direction === 'left' || direction === 'right') {
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY2, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
 
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(direction === 'left' || direction === 'right' ? eyeX : eyeX + eyeOffsetX * 2, eyeY2, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
-                ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY2, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
                 // Draw tongue
                 const tongueLength = gridSize * 0.3;
