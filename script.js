@@ -102,12 +102,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw snake
         for (let i = 0; i < snake.length; i++) {
-            ctx.fillStyle = i === 0 ? 'green' : 'lime';
-            ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize, gridSize);
+            const part = snake[i];
+            ctx.fillStyle = i === 0 ? 'darkgreen' : 'limegreen';
+            
+            // Draw rounded rectangle for each snake part
+            drawRoundedRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize, gridSize / 4);
+            
+            // Draw eyes and tongue for the head
+            if (i === 0) {
+                drawSnakeHead(part);
+            }
         }
+        
+        // Draw food
         ctx.fillStyle = 'red';
-        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+        ctx.beginPath();
+        ctx.arc((food.x + 0.5) * gridSize, (food.y + 0.5) * gridSize, gridSize / 2, 0, Math.PI * 2);
+        ctx.fill();
     }
     
     function update() {
@@ -431,5 +445,93 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gamepads[0] && gamepads[0].hapticActuators && gamepads[0].hapticActuators.length > 0) {
             gamepads[0].hapticActuators[0].pulse(1.0, duration);
         }
+    }
+    
+    function drawRoundedRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    function drawSnakeHead(head) {
+        const eyeWidth = gridSize / 5;
+        const eyeHeight = gridSize / 8;
+        const eyeOffsetX = gridSize / 4;
+        const eyeOffsetY = gridSize / 5;
+
+        // Determine eye rotation based on direction
+        let eyeRotation = 0;
+        switch (direction) {
+            case 'right': eyeRotation = 0; break;
+            case 'down': eyeRotation = Math.PI / 2; break;
+            case 'left': eyeRotation = Math.PI; break;
+            case 'up': eyeRotation = -Math.PI / 2; break;
+        }
+
+        // Draw eyes
+        ctx.fillStyle = 'white';
+        drawRotatedEllipse((head.x + 0.5) * gridSize - eyeOffsetX, (head.y + 0.5) * gridSize - eyeOffsetY, eyeWidth, eyeHeight, eyeRotation);
+        drawRotatedEllipse((head.x + 0.5) * gridSize + eyeOffsetX, (head.y + 0.5) * gridSize - eyeOffsetY, eyeWidth, eyeHeight, eyeRotation);
+
+        ctx.fillStyle = 'black';
+        drawRotatedEllipse((head.x + 0.5) * gridSize - eyeOffsetX, (head.y + 0.5) * gridSize - eyeOffsetY, eyeWidth / 2, eyeHeight / 2, eyeRotation);
+        drawRotatedEllipse((head.x + 0.5) * gridSize + eyeOffsetX, (head.y + 0.5) * gridSize - eyeOffsetY, eyeWidth / 2, eyeHeight / 2, eyeRotation);
+
+        // Draw tongue
+        drawTongue(head);
+    }
+    
+    function drawRotatedEllipse(x, y, width, height, rotation) {
+        ctx.beginPath();
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(width / 2, height / 2);
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.restore();
+        ctx.fill();
+    }
+    
+    function drawTongue(head) {
+        const tongueLength = gridSize * 0.6;
+        const tongueWidth = gridSize * 0.1;
+        const forkLength = gridSize * 0.2;
+        const forkAngle = Math.PI / 6;
+
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = tongueWidth;
+        ctx.lineCap = 'round';
+
+        let startX = (head.x + 0.5) * gridSize;
+        let startY = (head.y + 0.5) * gridSize;
+        let endX = startX;
+        let endY = startY;
+
+        switch (direction) {
+            case 'right': endX += tongueLength; break;
+            case 'left': endX -= tongueLength; break;
+            case 'up': endY -= tongueLength; break;
+            case 'down': endY += tongueLength; break;
+        }
+
+        // Draw main part of tongue
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        // Draw forked part
+        let angle = Math.atan2(endY - startY, endX - startX);
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX + Math.cos(angle + forkAngle) * forkLength, endY + Math.sin(angle + forkAngle) * forkLength);
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX + Math.cos(angle - forkAngle) * forkLength, endY + Math.sin(angle - forkAngle) * forkLength);
+        ctx.stroke();
     }
 });
