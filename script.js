@@ -498,10 +498,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function drawTongue(head) {
-        const tongueLength = gridSize * 0.6;
-        const tongueWidth = gridSize * 0.1;
-        const forkLength = gridSize * 0.2;
-        const forkAngle = Math.PI / 6;
+        const tongueLength = gridSize * 0.3;
+        const tongueWidth = gridSize * 0.06;
+        const forkLength = gridSize * 0.1;
+        const forkAngle = Math.PI / 8;
 
         ctx.strokeStyle = 'red';
         ctx.lineWidth = tongueWidth;
@@ -513,10 +513,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let endY = startY;
 
         switch (direction) {
-            case 'right': endX += tongueLength; break;
-            case 'left': endX -= tongueLength; break;
-            case 'up': endY -= tongueLength; break;
-            case 'down': endY += tongueLength; break;
+            case 'right': 
+                startX = (head.x + 1) * gridSize;
+                endX = startX + tongueLength;
+                startY = endY = (head.y + 0.6) * gridSize;
+                break;
+            case 'left': 
+                startX = head.x * gridSize;
+                endX = startX - tongueLength;
+                startY = endY = (head.y + 0.6) * gridSize;
+                break;
+            case 'up': 
+                startY = head.y * gridSize;
+                endY = startY - tongueLength;
+                startX = endX = (head.x + 0.5) * gridSize;
+                break;
+            case 'down': 
+                startY = (head.y + 1) * gridSize;
+                endY = startY + tongueLength;
+                startX = endX = (head.x + 0.5) * gridSize;
+                break;
         }
 
         // Draw main part of tongue
