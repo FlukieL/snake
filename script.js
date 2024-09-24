@@ -123,13 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 switch (direction) {
                     case 'right':
                         eyeX = part.x * gridSize + eyeOffsetX;
-                        eyeY1 = part.y * gridSize + eyeOffsetY;
-                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY;
+                        eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;  // Slightly reduced distance
+                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;  // Slightly reduced distance
                         break;
                     case 'left':
                         eyeX = (part.x + 1) * gridSize - eyeOffsetX;
-                        eyeY1 = part.y * gridSize + eyeOffsetY;
-                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY;
+                        eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;  // Slightly reduced distance
+                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;  // Slightly reduced distance
                         break;
                     case 'up':
                         eyeX = (part.x + 0.5) * gridSize - eyeOffsetX;
