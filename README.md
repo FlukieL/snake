@@ -1,4 +1,5 @@
 # Snake
+![image](https://github.com/user-attachments/assets/51e57f82-bc3d-4920-8ee8-d65dc5cf33e7)
 
 Basic snake game made with Claude / Other AI tools
 
