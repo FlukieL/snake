@@ -24,6 +24,11 @@ Track was a chiptune style track to fit the mood of the game.
 
 https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
 
+Gameover music was generated with elevenlabs.io
+
+## Sound
+Eating sound was generated with elevenlabs.io
+
 ## Art / Logo
 ![image](https://github.com/user-attachments/assets/197a48fa-b0d4-4644-aee7-5d87275947ad)
 
@@ -34,3 +39,4 @@ Logo was generated with Bing Image Creator.
 - [Luke Harper](https://lukeharper.co.uk) - Game development
 - [Suno AI](https://suno.ai) - Music generation
 - [Bing Image Creator](https://bing.com/create) - Logo generation
+- [elevenlabs.io](https://elevenlabs.io/app/sound-effects) - Sound generation
