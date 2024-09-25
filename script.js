@@ -102,12 +102,164 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw snake
         for (let i = 0; i < snake.length; i++) {
-            ctx.fillStyle = i === 0 ? 'green' : 'lime';
-            ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize, gridSize);
+            const part = snake[i];
+            ctx.fillStyle = i === 0 ? 'darkgreen' : 'limegreen';
+            
+            // Draw rounded rectangle for each snake part
+            drawRoundedRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize, gridSize / 4);
+            
+            // Draw eyes and tongue for the head
+            if (i === 0) {
+                const eyeWidth = gridSize / 5;
+                const eyeHeight = gridSize / 8;
+                const eyeOffsetX = gridSize / 4;
+                const eyeOffsetY = gridSize / 6;
+
+                let eyeX, eyeY1, eyeY2;
+
+                switch (direction) {
+                    case 'right':
+                        eyeX = part.x * gridSize + eyeOffsetX;
+                        eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;  // Slightly reduced distance
+                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;  // Slightly reduced distance
+                        break;
+                    case 'left':
+                        eyeX = (part.x + 1) * gridSize - eyeOffsetX;
+                        eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;  // Slightly reduced distance
+                        eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;  // Slightly reduced distance
+                        break;
+                    case 'up':
+                        eyeX = (part.x + 0.5) * gridSize - eyeOffsetX;
+                        eyeY1 = eyeY2 = (part.y + 1) * gridSize - eyeOffsetY;
+                        break;
+                    case 'down':
+                        eyeX = (part.x + 0.5) * gridSize - eyeOffsetX;
+                        eyeY1 = eyeY2 = part.y * gridSize + eyeOffsetY;
+                        break;
+                }
+
+                // Draw eyes
+                ctx.fillStyle = 'white';
+                if (direction === 'left' || direction === 'right') {
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY2, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY2, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw tongue
+                const tongueLength = gridSize * 0.3;
+                const tongueWidth = gridSize * 0.06;
+                const forkLength = gridSize * 0.1;
+                const forkAngle = Math.PI / 8;
+
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = tongueWidth;
+                ctx.lineCap = 'round';
+
+                let startX = (part.x + 0.5) * gridSize;
+                let startY = (part.y + 0.5) * gridSize;
+                let endX = startX;
+                let endY = startY;
+
+                switch (direction) {
+                    case 'right': 
+                        startX = (part.x + 1) * gridSize;
+                        endX = startX + tongueLength;
+                        startY = endY = (part.y + 0.6) * gridSize;
+                        break;
+                    case 'left': 
+                        startX = part.x * gridSize;
+                        endX = startX - tongueLength;
+                        startY = endY = (part.y + 0.6) * gridSize;
+                        break;
+                    case 'up': 
+                        startY = part.y * gridSize;
+                        endY = startY - tongueLength;
+                        startX = endX = (part.x + 0.5) * gridSize;
+                        break;
+                    case 'down': 
+                        startY = (part.y + 1) * gridSize;
+                        endY = startY + tongueLength;
+                        startX = endX = (part.x + 0.5) * gridSize;
+                        break;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+
+                let angle = Math.atan2(endY - startY, endX - startX);
+                ctx.beginPath();
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(endX + Math.cos(angle + forkAngle) * forkLength, endY + Math.sin(angle + forkAngle) * forkLength);
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(endX + Math.cos(angle - forkAngle) * forkLength, endY + Math.sin(angle - forkAngle) * forkLength);
+                ctx.stroke();
+            }
         }
+        
+        // Draw food (apple)
+        const appleCenterX = (food.x + 0.5) * gridSize;
+        const appleCenterY = (food.y + 0.5) * gridSize;
+        const appleRadius = gridSize / 2.5;
+
+        // Apple body
         ctx.fillStyle = 'red';
-        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+        ctx.beginPath();
+        ctx.arc(appleCenterX, appleCenterY, appleRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Stem
+        ctx.strokeStyle = 'brown';
+        ctx.lineWidth = gridSize / 15;
+        ctx.beginPath();
+        ctx.moveTo(appleCenterX, appleCenterY - appleRadius);
+        ctx.lineTo(appleCenterX, appleCenterY - appleRadius - gridSize / 8);
+        ctx.stroke();
+
+        // Leaf
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.ellipse(
+            appleCenterX + gridSize / 16, 
+            appleCenterY - appleRadius - gridSize / 16, 
+            gridSize / 8, 
+            gridSize / 16, 
+            Math.PI / 4, 
+            0, 
+            Math.PI * 2
+        );
+        ctx.fill();
     }
     
     function update() {
@@ -431,5 +583,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gamepads[0] && gamepads[0].hapticActuators && gamepads[0].hapticActuators.length > 0) {
             gamepads[0].hapticActuators[0].pulse(1.0, duration);
         }
+    }
+    
+    function drawRoundedRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function drawRotatedEllipse(x, y, width, height, rotation) {
+        ctx.beginPath();
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(width / 2, height / 2);
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.restore();
+        ctx.fill();
     }
 });
