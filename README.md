@@ -19,10 +19,13 @@ Iterative design using a mixture of AI tools with Cursor / Claude / GPT.
 Music was generated with Suno AI.
 
 Track was a chiptune style track.
+![image](https://github.com/user-attachments/assets/6b8283c9-5721-4363-b724-d5dab422057e)
+
 https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
 
 ## Art / Logo
 ![logo](https://github.com/user-attachments/assets/cad7198e-ce59-4aa9-a9cf-8ea3d9087ea1)
+
 Logo was generated with Bing Image Creator.
 
 ## Credits
