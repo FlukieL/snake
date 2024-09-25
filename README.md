@@ -11,3 +11,21 @@ This is a simple Snake game where the player controls a snake that moves around 
 3. Avoid colliding with the walls or the snake's own tail, as this will end the game.
 
 Play the game here: [https://snake.lukeharper.co.uk](https://snake.lukeharper.co.uk)
+
+## Design
+Iterative design using a mixture of AI tools with Cursor / Claude / GPT.
+
+## Music
+Music was generated with Suno AI.
+
+Track was a chiptune style track.
+https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
+
+## Art / Logo
+Logo was generated with Bing Image Creator.
+
+## Credits
+
+- [Luke Harper](https://lukeharper.co.uk) - Game development
+- [Suno AI](https://suno.ai) - Music generation
+- [Bing Image Creator](https://bing.com/create) - Logo generation
