@@ -35,7 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameLoopInterval;
     let directionQueue = []; // Queue to store direction changes
     let lastFrameTime = 0; // Time of the last frame
-    const frameRate = 10; // Target frame rate (frames per second)
+    const frameRate = 60; // Target frame rate (frames per second)
+    const updateInterval = 1000 / 10; // Update interval for game logic (10 updates per second)
     
     let highScores = loadHighScores();
     let musicMuted = loadMuteState('musicMuted', false); // Load music mute state
@@ -68,14 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!gameOver && !gamePaused) { // Only update if not game over or paused
             // Calculate time difference since last frame
             const deltaTime = currentTime - lastFrameTime;
-    
-            // Update game state at the target frame rate
-            if (deltaTime >= 1000 / frameRate) {
+
+            // Update game state at the target update interval
+            if (deltaTime >= updateInterval) {
                 update();
-                lastFrameTime = currentTime - (deltaTime % (1000 / frameRate)); // Adjust for smoother animation
+                lastFrameTime = currentTime - (deltaTime % updateInterval); // Adjust for smoother animation
             }
         }
-    
+
+        draw(); // Always draw at the target frame rate
         requestAnimationFrame(gameLoop); // Request the next frame
     }
     
