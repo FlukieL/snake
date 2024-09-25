@@ -22,6 +22,7 @@ Track was a chiptune style track.
 https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
 
 ## Art / Logo
+![logo](https://github.com/user-attachments/assets/cad7198e-ce59-4aa9-a9cf-8ea3d9087ea1)
 Logo was generated with Bing Image Creator.
 
 ## Credits
