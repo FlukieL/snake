@@ -24,9 +24,13 @@ Track was a chiptune style track to fit the mood of the game.
 
 https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
 
+[GameOverSound.webm](https://github.com/user-attachments/assets/64ff035d-396b-4e5e-847b-70f4359e25ee)
+
 Gameover music was generated with elevenlabs.io
 
 ## Sound
+[EatingSound.webm](https://github.com/user-attachments/assets/073427fa-f092-4130-878f-a1987f5af907)
+
 Eating sound was generated with elevenlabs.io
 
 ## Art / Logo
