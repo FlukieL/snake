@@ -606,4 +606,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.restore();
         ctx.fill();
     }
+
+    const mainMenuButton = document.getElementById('mainMenuButton');
+    mainMenuButton.addEventListener('click', () => {
+        gameOverScreen.style.display = 'none';
+        updateHighScores(score);
+        startGameScreen.style.display = 'flex';
+        canvas.style.display = 'none';
+        scoreCounter.style.display = 'none';
+    });
 });

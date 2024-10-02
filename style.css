@@ -451,3 +451,18 @@ h1 {
     color: rgba(255, 255, 255, 0.7);
     margin-top: 20px;
 }
+
+#mainMenuButton {
+    background-color: var(--button-background);
+    border: none;
+    color: var(--text-color);
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 5px 0; /* Add some space between buttons */
+    transition: background-color 0.3s ease; /* Add a transition effect */
+}
