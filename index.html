@@ -82,8 +82,9 @@
         }
     </script>
     <!-- iOS Prompt -->
-    <div id="iosPrompt" style="display: none;">
+    <div id="iosPrompt" style="display: none; position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;">
         <p>To play this game properly, tap the Share button and select "Add to Home Screen".</p>
+        <button id="dismissPrompt" style="margin-top: 10px; background-color: red; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Dismiss</button>
     </div>
 
     <script>
@@ -92,6 +93,11 @@
         if (isIOS) {
             document.getElementById('iosPrompt').style.display = 'block';
         }
+
+        // Dismiss the prompt when the button is clicked
+        document.getElementById('dismissPrompt').addEventListener('click', function() {
+            document.getElementById('iosPrompt').style.display = 'none';
+        });
     </script>
 </body>
 
