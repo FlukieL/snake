@@ -81,6 +81,18 @@
             });
         }
     </script>
+    <!-- iOS Prompt -->
+    <div id="iosPrompt" style="display: none;">
+        <p>To play this game properly, tap the Share button and select "Add to Home Screen".</p>
+    </div>
+
+    <script>
+        // Check if the user is on iOS Safari
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+            document.getElementById('iosPrompt').style.display = 'block';
+        }
+    </script>
 </body>
 
 </html>
