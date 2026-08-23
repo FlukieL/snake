@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let food = { x: 5, y: 5 };
     let direction = 'right';
     let score = 0, gameOver = false, gamePaused = false, scoreSubmitted = false;
+    let inGame = false; // true only while an active game session (not home/menu) is showing
     let directionQueue = [];
     const MAX_QUEUE = 2;
     let lastTickTime = 0;
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMuteButtonStates();
 
     function initializeGame() {
-        gameOver = false; gamePaused = false; scoreSubmitted = false;
+        gameOver = false; gamePaused = false; scoreSubmitted = false; inGame = true;
         snake = [{ x: 10, y: 10 }];
         previousSnake = [{ x: 10, y: 10 }];
         direction = 'right'; directionQueue = []; score = 0;
@@ -408,6 +409,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { /* ignore */ }
     }
 
+    function formatScoreDate(isoLikeString) {
+        if (!isoLikeString) return '';
+        // D1's datetime('now') returns "YYYY-MM-DD HH:MM:SS" (UTC, no 'Z'/'T').
+        // Normalize so Date can parse it reliably across browsers.
+        const normalized = isoLikeString.includes('T') ? isoLikeString : isoLikeString.replace(' ', 'T') + 'Z';
+        const date = new Date(normalized);
+        if (isNaN(date.getTime())) return '';
+        const datePart = date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+        const timePart = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        return `${datePart} ${timePart}`;
+    }
+
     function renderHighScores(listElement, scores) {
         listElement.innerHTML = '';
         if (!scores || scores.length === 0) {
@@ -419,11 +432,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         scores.slice(0, 5).forEach(entry => {
             const li = document.createElement('li');
+
+            const infoWrap = document.createElement('span');
+            infoWrap.className = 'score-info';
+
             const nameSpan = document.createElement('span');
+            nameSpan.className = 'score-name';
             nameSpan.textContent = entry.name;
+            infoWrap.appendChild(nameSpan);
+
+            const dateText = formatScoreDate(entry.created_at);
+            if (dateText) {
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'score-date';
+                dateSpan.textContent = dateText;
+                infoWrap.appendChild(dateSpan);
+            }
+
             const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'score-value';
             scoreSpan.textContent = entry.score;
-            li.appendChild(nameSpan);
+
+            li.appendChild(infoWrap);
             li.appendChild(scoreSpan);
             listElement.appendChild(li);
         });
@@ -508,12 +538,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchHighScores();
 
+    function isGameplayActive() {
+        // Music should only auto-resume on unmute if we're actually in an active,
+        // unpaused gameplay session - not on the home/start screen, game-over screen, or while paused.
+        return inGame && !gamePaused && !gameOver;
+    }
+
     function toggleMusicMute() {
         musicMuted = !musicMuted;
         saveMuteState('musicMuted', musicMuted);
         updateMuteButtonStates();
-        if (musicMuted) gameMusic.pause();
-        else gameMusic.play().catch(() => {});
+        if (musicMuted) {
+            gameMusic.pause();
+        } else if (isGameplayActive()) {
+            gameMusic.play().catch(() => {});
+        }
     }
 
     function toggleEffectsMute() {
@@ -564,6 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     mainMenuButton.addEventListener('click', () => {
+        inGame = false;
         gameOverScreen.style.display = 'none';
         submitCurrentScoreIfNeeded();
         startGameScreen.style.display = 'flex';
