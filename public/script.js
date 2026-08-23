@@ -72,10 +72,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function playNokiaToggleSound(turningOn) {
+        // A short two-note chirp: rising for "on", falling for "off".
+        if (turningOn) {
+            playBeep(660, 0.06, 'square', 0.16);
+            setTimeout(() => playBeep(990, 0.08, 'square', 0.16), 70);
+        } else {
+            playBeep(990, 0.06, 'square', 0.16);
+            setTimeout(() => playBeep(660, 0.08, 'square', 0.16), 70);
+        }
+    }
+
     function toggleNokiaMode() {
         nokiaMode = !nokiaMode;
         saveMuteState('nokiaMode', nokiaMode);
         applyNokiaMode();
+        playNokiaToggleSound(nokiaMode);
+
+        // Turning Nokia Mode on mutes the music by default, matching the silent/beeps-only
+        // feel of the original handset. Turning it off does not automatically unmute.
+        if (nokiaMode && !musicMuted) {
+            toggleMusicMute();
+        }
     }
 
     if (nokiaModeButton) nokiaModeButton.addEventListener('click', toggleNokiaMode);
