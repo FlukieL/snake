@@ -266,6 +266,16 @@ export function initModeTabs() {
             document.querySelectorAll('[data-mode-panel]').forEach(panel => {
                 panel.style.display = panel.getAttribute('data-mode-panel') === mode ? 'block' : 'none';
             });
+            // The newly-revealed panel's own scoreboard tabs (All Time/This Week)
+            // may have had their slider positioned while still hidden (offsetLeft/
+            // offsetWidth are 0 for display:none elements), leaving the pill
+            // stuck at 0 width and looking "unselected". Re-measure it now that
+            // the panel is visible.
+            requestAnimationFrame(() => {
+                document.querySelectorAll(`[data-mode-panel="${mode}"] .scoreboard-tabs`).forEach(tabsEl => {
+                    positionSlider(tabsEl, tabsEl.querySelector('.tab-btn.active'));
+                });
+            });
             if (dom.nokiaModeButton) {
                 dom.nokiaModeButton.style.display = mode === 'levels' ? 'none' : 'block';
             }

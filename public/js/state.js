@@ -24,28 +24,43 @@ export const constants = {
     // --- Levels Mode ---
     FRUITS_PER_LEVEL: 5, // fruits needed to eat before advancing to the next level
     LEVEL_BASE_TICK_RATE: 12,
-    LEVEL_TICK_RATE_STEP: 0.6, // speed increase per level
-    LEVEL_MAX_TICK_RATE: 22,
+    LEVEL_TICK_RATE_STEP: 0.6, // base speed increase per level
+    // The per-level speed increase itself grows the higher the level gets, so
+    // later levels ramp up noticeably faster than earlier ones (an
+    // accelerating difficulty curve rather than a flat linear one).
+    LEVEL_TICK_RATE_ACCEL: 0.06,
+    LEVEL_MAX_TICK_RATE: 26,
     OBSTACLES_START_LEVEL: 3, // obstacles begin appearing from this level onward
     OBSTACLES_PER_LEVEL: 2, // additional obstacle blocks added per level past the start
     MAX_OBSTACLES: 24,
     OBSTACLE_COLOR: '#5b4636',
 
-    POWERUP_SPAWN_INTERVAL: 14000, // ms between power-up spawn attempts
+    POWERUP_SPAWN_INTERVAL: 11000, // ms between power-up spawn attempts
     POWERUP_LIFETIME: 8000, // ms a spawned power-up stays on the board before vanishing
+    MULTIPLIER_DURATION: 10000, // ms a multiplier stack lasts / is refreshed to on pickup
+
+    // Permanent speed penalties, added directly to the tick interval (ms) and
+    // never removed for the rest of the run. Multiple stack additively.
+    SLOWDOWN_PER_POWERUP: 18, // ms added to tick interval when the "Slow" power-up is collected
+    SLOWDOWN_ON_DEATH: 10, // ms added to tick interval every time a life is lost
+
     POWERUP_TYPES: {
         multiplier: {
             color: '#ffd54f',
-            symbol: '2x',
+            symbol: '\u00d7',
             duration: 10000,
-            label: 'Score x2',
-            description: 'Doubles the points earned from every fruit eaten for 10 seconds.'
+            label: 'Score Multiplier',
+            // Weight controls how much more likely this type is to be chosen
+            // vs the others when a power-up spawns (higher = more common).
+            weight: 3,
+            description: 'Multiplies fruit points x2 for 10 seconds. Grabbing another one while it\u2019s active stacks the multiplier even higher (x3, x4...) and refreshes the timer - the snake flashes yellow while active.'
         },
         invincible: {
             color: '#4fc3f7',
             symbol: '\u2605',
             duration: 6000,
             label: 'Invincible',
+            weight: 1,
             description: 'Grants 6 seconds of immunity to obstacles and self-collision - crash safely!'
         },
         shrink: {
@@ -53,7 +68,16 @@ export const constants = {
             symbol: '-3',
             duration: 0,
             label: 'Shrink',
+            weight: 1,
             description: 'Instantly removes up to 3 segments from the snake\u2019s tail, great for escaping tight obstacle mazes.'
+        },
+        slow: {
+            color: '#66bb6a',
+            symbol: '\u2744',
+            duration: 0,
+            label: 'Slow Down',
+            weight: 1,
+            description: 'Permanently slows the snake down a little for the rest of the run - handy for surviving tricky later levels. Losing a life also slows you down slightly.'
         }
     },
 
@@ -67,6 +91,7 @@ export const constants = {
     LEVELS_ACCENT_DARK: '#7d3f8e',
     LEVELS_SNAKE_HEAD: '#7d3f8e',
     LEVELS_SNAKE_BODY: '#ba68c8',
+    MULTIPLIER_FLASH_COLOR: '#ffe066',
     BANNER_LETTER_COLORS: ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'],
     RANK_MEDALS: { 2: 'silver', 3: 'bronze' },
     GOOGLE_CLIENT_ID: '600684655874-jfqakqf9snp67eikljkfsl3qmbtopin5.apps.googleusercontent.com',
@@ -117,6 +142,10 @@ export const state = {
     level: 1,
     fruitsEatenThisLevel: 0,
     tickInterval: 1000 / 12,
+    // Cumulative permanent speed penalty (ms), added on top of the level's
+    // base tick interval. Grows from the "Slow" power-up and from dying, and
+    // never decreases for the rest of the run.
+    permanentSlowdown: 0,
     obstacles: [], // array of { x, y }
     lives: 3,
     nextExtraLifeAt: 30, // score threshold at which the next extra life is awarded
@@ -126,6 +155,7 @@ export const state = {
     lastPowerupSpawnAttempt: 0,
     effects: {
         multiplierUntil: 0,
+        multiplierStacks: 0, // 0 = no multiplier active; 1 = x2, 2 = x3, etc.
         invincibleUntil: 0
     },
 

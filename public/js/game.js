@@ -20,7 +20,7 @@ import {
     onFruitEatenInLevelsMode,
     checkObstacleCollision,
     isInvincible,
-    isScoreMultiplied,
+    getMultiplierValue,
     maybeSpawnPowerup,
     collectPowerupIfPresent,
     checkForExtraLife,
@@ -128,7 +128,7 @@ function update() {
     }
 
     if (head.x === state.food.x && head.y === state.food.y) {
-        const points = isScoreMultiplied() ? 2 : 1;
+        const points = state.gameMode === 'levels' ? getMultiplierValue() : 1;
         state.score += points;
         dom.scoreCounter.textContent = state.score;
         dom.scoreCounter.classList.add('animateScore');

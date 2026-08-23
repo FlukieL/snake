@@ -7,11 +7,13 @@ import { state, constants } from './state.js';
 export function resetLevelsState() {
     state.level = 1;
     state.fruitsEatenThisLevel = 0;
+    state.permanentSlowdown = 0;
     state.tickInterval = 1000 / constants.LEVEL_BASE_TICK_RATE;
     state.obstacles = [];
     state.activePowerup = null;
     state.lastPowerupSpawnAttempt = performance.now();
     state.effects.multiplierUntil = 0;
+    state.effects.multiplierStacks = 0;
     state.effects.invincibleUntil = 0;
     state.lives = constants.STARTING_LIVES;
     state.nextExtraLifeAt = constants.POINTS_PER_EXTRA_LIFE;
@@ -39,6 +41,10 @@ export function loseLifeOrGameOver() {
     if (state.gameMode !== 'levels') return false;
     if (state.lives <= 0) return false;
     state.lives--;
+    // Dying costs a small permanent speed penalty too, on top of any from
+    // the Slow power-up - a real (if minor) consequence for crashing.
+    state.permanentSlowdown += constants.SLOWDOWN_ON_DEATH;
+    recomputeTickInterval();
     return true;
 }
 
@@ -73,9 +79,23 @@ function findSafeSpawnPoint() {
     return { x: 10, y: 10 };
 }
 
+// Computes the tick rate (ticks/sec) for a given level. The per-level speed
+// increase grows the further into the run you get (accelerating difficulty):
+// each level's step is LEVEL_TICK_RATE_STEP plus an additional
+// LEVEL_TICK_RATE_ACCEL for every level already passed, so late levels ramp
+// up noticeably faster than early ones instead of a flat linear increase.
 function tickRateForLevel(level) {
-    const rate = constants.LEVEL_BASE_TICK_RATE + (level - 1) * constants.LEVEL_TICK_RATE_STEP;
+    const levelsPast = level - 1;
+    const accelSum = constants.LEVEL_TICK_RATE_ACCEL * levelsPast * (levelsPast + 1) / 2;
+    const rate = constants.LEVEL_BASE_TICK_RATE + levelsPast * constants.LEVEL_TICK_RATE_STEP + accelSum;
     return Math.min(rate, constants.LEVEL_MAX_TICK_RATE);
+}
+
+// Recomputes state.tickInterval from the current level's base rate plus any
+// accumulated permanent slowdown (from the Slow power-up and/or deaths).
+// Called whenever either input changes so the two always stay in sync.
+function recomputeTickInterval() {
+    state.tickInterval = (1000 / tickRateForLevel(state.level)) + state.permanentSlowdown;
 }
 
 // Cells directly ahead of the snake's head (in its current direction of travel)
@@ -205,7 +225,7 @@ export function onFruitEatenInLevelsMode() {
     if (state.fruitsEatenThisLevel >= constants.FRUITS_PER_LEVEL) {
         state.level++;
         state.fruitsEatenThisLevel = 0;
-        state.tickInterval = 1000 / tickRateForLevel(state.level);
+        recomputeTickInterval();
         updateObstaclesForLevel();
         return true;
     }
@@ -220,6 +240,17 @@ export function checkObstacleCollision(head) {
 
 export function isInvincible() {
     return performance.now() < state.effects.invincibleUntil;
+}
+
+// Returns the current score multiplier as a plain integer (1 = no bonus,
+// 2 = x2, 3 = x3, etc). Automatically resets stacks to 0 once the timer runs
+// out, so isScoreMultiplied()/the flashing render effect stay in sync.
+export function getMultiplierValue() {
+    if (performance.now() >= state.effects.multiplierUntil) {
+        state.effects.multiplierStacks = 0;
+        return 1;
+    }
+    return 1 + state.effects.multiplierStacks;
 }
 
 export function isScoreMultiplied() {
@@ -237,6 +268,19 @@ function randomFreeCell() {
     return null;
 }
 
+// Picks a random power-up type using each type's `weight` from
+// POWERUP_TYPES as a relative likelihood (higher weight = more common).
+function pickWeightedPowerupType() {
+    const entries = Object.entries(constants.POWERUP_TYPES);
+    const totalWeight = entries.reduce((sum, [, def]) => sum + (def.weight || 1), 0);
+    let roll = Math.random() * totalWeight;
+    for (const [type, def] of entries) {
+        roll -= (def.weight || 1);
+        if (roll <= 0) return type;
+    }
+    return entries[entries.length - 1][0];
+}
+
 // Attempts to spawn a power-up on a timer; only ever one active at a time.
 export function maybeSpawnPowerup(now) {
     if (state.gameMode !== 'levels') return;
@@ -252,8 +296,7 @@ export function maybeSpawnPowerup(now) {
 
     const cell = randomFreeCell();
     if (!cell) return;
-    const types = Object.keys(constants.POWERUP_TYPES);
-    const type = types[Math.floor(Math.random() * types.length)];
+    const type = pickWeightedPowerupType();
     state.activePowerup = { type, x: cell.x, y: cell.y, spawnTime: now };
 }
 
@@ -269,12 +312,24 @@ export function collectPowerupIfPresent(head) {
     const now = performance.now();
 
     if (type === 'multiplier') {
-        state.effects.multiplierUntil = now + def.duration;
+        // Stacking: if a multiplier is already active, grabbing another one
+        // increases the stack (x2 -> x3 -> x4...) instead of just refreshing
+        // the same x2 bonus. The timer always resets to the full duration.
+        if (now < state.effects.multiplierUntil) {
+            state.effects.multiplierStacks++;
+        } else {
+            state.effects.multiplierStacks = 1;
+        }
+        state.effects.multiplierUntil = now + constants.MULTIPLIER_DURATION;
     } else if (type === 'invincible') {
         state.effects.invincibleUntil = now + def.duration;
     } else if (type === 'shrink') {
         const removeCount = Math.min(3, Math.max(0, state.snake.length - 2));
         for (let i = 0; i < removeCount; i++) state.snake.pop();
+    } else if (type === 'slow') {
+        // Permanent, stacking speed reduction for the rest of the run.
+        state.permanentSlowdown += constants.SLOWDOWN_PER_POWERUP;
+        recomputeTickInterval();
     }
 
     state.activePowerup = null;

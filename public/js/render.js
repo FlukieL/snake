@@ -3,6 +3,7 @@
 
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
+import { isScoreMultiplied } from './levels.js';
 
 function wrapDelta(d) {
     if (Math.abs(d) > 1) return d > 0 ? d - state.cellCount : d + state.cellCount;
@@ -375,6 +376,23 @@ function hexToRgb(hex) {
     return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
 }
 
+// Named CSS colors used for the Levels Mode snake fallback (Classic mode
+// colors), since hexToRgb only understands hex strings.
+const NAMED_COLOR_HEX = { darkgreen: '#006400', limegreen: '#32cd32' };
+
+// Blends a base snake segment color toward the multiplier flash color, with
+// `amount` (0-1) controlling how far toward full yellow the blend goes -
+// used to create a pulsing flash effect while a score multiplier is active.
+function blendWithFlash(baseColor, amount) {
+    const baseHex = NAMED_COLOR_HEX[baseColor] || baseColor;
+    const base = hexToRgb(baseHex);
+    const flash = hexToRgb(constants.MULTIPLIER_FLASH_COLOR);
+    const r = Math.round(base.r + (flash.r - base.r) * amount);
+    const g = Math.round(base.g + (flash.g - base.g) * amount);
+    const b = Math.round(base.b + (flash.b - base.b) * amount);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
 function drawSegmentOverlay(ctx, x, y, gridSize, overlay) {
     if (!overlay) return;
     const { r, g, b } = hexToRgb(overlay.color);
@@ -486,13 +504,22 @@ export function draw(t) {
     const activeWaves = updateAndGetActiveWaves(state.snake.length - 1, now);
     let headPos = null;
 
+    // While a score multiplier is active in Levels Mode, the whole snake
+    // pulses/flashes yellow so the bonus is obvious at a glance rather than
+    // only visible via a small badge or number.
+    const multiplierActive = state.gameMode === 'levels' && isScoreMultiplied();
+    const flashPulse = multiplierActive ? (0.5 + Math.sin(now / 90) * 0.5) : 0;
+
     for (let i = 0; i < state.snake.length; i++) {
         const curr = state.snake[i];
         const prev = state.previousSnake[i] || curr;
         const pos = interpolatePosition(prev, curr, t);
-        ctx.fillStyle = state.gameMode === 'levels'
+        const baseColor = state.gameMode === 'levels'
             ? (i === 0 ? constants.LEVELS_SNAKE_HEAD : constants.LEVELS_SNAKE_BODY)
             : (i === 0 ? 'darkgreen' : 'limegreen');
+        ctx.fillStyle = multiplierActive
+            ? blendWithFlash(baseColor, flashPulse)
+            : baseColor;
         const x = pos.x * state.gridSize, y = pos.y * state.gridSize;
         drawRoundedRect(ctx, x, y, state.gridSize, state.gridSize, state.gridSize / 4);
         if (activeWaves.length > 0) {
