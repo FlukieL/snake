@@ -15,7 +15,7 @@ export function resetLevelsState() {
     state.effects.invincibleUntil = 0;
     state.lives = constants.STARTING_LIVES;
     state.nextExtraLifeAt = constants.POINTS_PER_EXTRA_LIFE;
-    generateObstaclesForLevel();
+    updateObstaclesForLevel();
 }
 
 // Call whenever the score changes in Levels Mode. Awards an extra life every
@@ -100,7 +100,6 @@ function getSafeCorridorCells() {
     for (let i = 1; i <= corridorLength; i++) {
         let x = head.x + dx * i;
         let y = head.y + dy * i;
-        // Wrap around edges, matching the snake's own wrap-around movement.
         if (x < 0) x = state.cellCount - 1;
         else if (x >= state.cellCount) x = 0;
         if (y < 0) y = state.cellCount - 1;
@@ -108,6 +107,17 @@ function getSafeCorridorCells() {
         cells.push({ x, y });
     }
     return cells;
+}
+
+// Minimum distance (in grid cells) any new obstacle cluster must keep from
+// the snake's current head position, so walls always appear "further away"
+// rather than right next to the player.
+const MIN_DISTANCE_FROM_SNAKE = 5;
+
+function distanceFromHead(x, y) {
+    if (!state.snake.length) return Infinity;
+    const head = state.snake[0];
+    return Math.abs(x - head.x) + Math.abs(y - head.y);
 }
 
 function isOccupied(x, y, safeCorridor) {
@@ -121,26 +131,74 @@ function isOccupied(x, y, safeCorridor) {
     return false;
 }
 
-function generateObstaclesForLevel() {
+// Generates a small "L-shaped" (or straight, as a simpler fallback) cluster
+// of 3-5 obstacle cells starting from an anchor point, so walls read as
+// distinct rock formations rather than randomly scattered single blocks.
+function buildLShapeCluster(anchorX, anchorY, safeCorridor) {
+    const cluster = [];
+    const armLength = 2 + Math.floor(Math.random() * 2); // 2-3 cells per arm
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const dirA = directions[Math.floor(Math.random() * directions.length)];
+    // Pick a second direction perpendicular to the first, to form the "L".
+    const perpendicular = dirA[0] !== 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
+    const dirB = perpendicular[Math.floor(Math.random() * perpendicular.length)];
+
+    let x = anchorX, y = anchorY;
+    for (let i = 0; i < armLength; i++) {
+        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isOccupied(x, y, safeCorridor) &&
+            !cluster.some(c => c.x === x && c.y === y)) {
+            cluster.push({ x, y });
+        }
+        x += dirA[0];
+        y += dirA[1];
+    }
+    // Second arm branches off from the anchor point (the "corner" of the L).
+    x = anchorX; y = anchorY;
+    for (let i = 0; i < armLength; i++) {
+        x += dirB[0];
+        y += dirB[1];
+        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isOccupied(x, y, safeCorridor) &&
+            !cluster.some(c => c.x === x && c.y === y)) {
+            cluster.push({ x, y });
+        }
+    }
+    return cluster;
+}
+
+// Regenerates the full obstacle layout for the current level as a handful of
+// L-shaped clusters (rather than many scattered single blocks), placed away
+// from the snake's current position. Called only on level-up / game start,
+// so obstacle layout stays stable and predictable during a level instead of
+// shifting on every fruit eaten.
+function updateObstaclesForLevel() {
     state.obstacles = [];
     if (state.level < constants.OBSTACLES_START_LEVEL) return;
 
     const extraLevels = state.level - constants.OBSTACLES_START_LEVEL + 1;
-    const count = Math.min(constants.MAX_OBSTACLES, extraLevels * constants.OBSTACLES_PER_LEVEL);
+    const targetCount = Math.min(constants.MAX_OBSTACLES, extraLevels * constants.OBSTACLES_PER_LEVEL);
     const safeCorridor = getSafeCorridorCells();
 
     let attempts = 0;
-    while (state.obstacles.length < count && attempts < count * 20) {
+    while (state.obstacles.length < targetCount && attempts < 60) {
         attempts++;
         const x = Math.floor(Math.random() * state.cellCount);
         const y = Math.floor(Math.random() * state.cellCount);
-        if (!isOccupied(x, y, safeCorridor)) {
-            state.obstacles.push({ x, y });
+        if (distanceFromHead(x, y) < MIN_DISTANCE_FROM_SNAKE) continue;
+        if (isOccupied(x, y, safeCorridor)) continue;
+
+        const cluster = buildLShapeCluster(x, y, safeCorridor);
+        for (const cell of cluster) {
+            if (state.obstacles.length >= targetCount) break;
+            if (!state.obstacles.some(o => o.x === cell.x && o.y === cell.y)) {
+                state.obstacles.push(cell);
+            }
         }
     }
 }
 
 // Call after a fruit is eaten while in Levels Mode. Returns true if the level advanced.
+// Note: obstacles are NOT regenerated on every fruit - only on level-up - so
+// the wall layout stays stable and predictable while playing through a level.
 export function onFruitEatenInLevelsMode() {
     if (state.gameMode !== 'levels') return false;
     state.fruitsEatenThisLevel++;
@@ -148,7 +206,7 @@ export function onFruitEatenInLevelsMode() {
         state.level++;
         state.fruitsEatenThisLevel = 0;
         state.tickInterval = 1000 / tickRateForLevel(state.level);
-        generateObstaclesForLevel();
+        updateObstaclesForLevel();
         return true;
     }
     return false;
