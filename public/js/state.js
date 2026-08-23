@@ -9,6 +9,17 @@ export const constants = {
     FRUIT_TYPES: ['apple', 'orange', 'grape', 'cherry', 'lemon'],
     FOOD_POP_DURATION: 260, // ms
     BLINK_DURATION: 130, // ms
+    // Primary color for each fruit type, used for the "digestion wave" that
+    // travels through the snake's body after eating.
+    FRUIT_COLORS: {
+        apple: '#ff3b30',
+        orange: '#ff9f1c',
+        grape: '#8e44ad',
+        cherry: '#d21f3c',
+        lemon: '#f4e04d'
+    },
+    DIGESTION_WAVE_SPEED: 26, // segments per second the color wave travels through the body
+    DIGESTION_WAVE_WIDTH: 1.6, // width of the glow band, in segments
     NOKIA_PIXEL: '#3a3f2e',
     BANNER_LETTER_COLORS: ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'],
     RANK_MEDALS: { 2: 'silver', 3: 'bronze' },
@@ -48,5 +59,10 @@ export const state = {
     googleDisplayName: null,
 
     cachedScoresByPeriod: { alltime: [], weekly: [] },
-    activePeriod: { highScoreList: 'alltime', gameOverHighScoreList: 'alltime' }
+    activePeriod: { highScoreList: 'alltime', gameOverHighScoreList: 'alltime' },
+
+    // Active "digestion wave" animations - each is { color, startTime }. A wave's
+    // travel position through the snake's body is computed purely from elapsed
+    // time, so it stays smooth regardless of the game tick rate.
+    digestionWaves: []
 };

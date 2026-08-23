@@ -55,6 +55,37 @@ export function resetFoodSpawnTimer() {
     state.foodSpawnTime = performance.now();
 }
 
+// --- Digestion wave: after eating, the fruit's primary color travels through
+// the snake's body from head to tail over time, purely as a visual flourish.
+export function triggerDigestionWave(fruitType) {
+    const color = constants.FRUIT_COLORS[fruitType] || constants.FRUIT_COLORS.apple;
+    state.digestionWaves.push({ color, startTime: performance.now() });
+}
+
+function updateAndGetActiveWaves(maxIndex, now) {
+    state.digestionWaves = state.digestionWaves.filter(wave => {
+        const elapsed = (now - wave.startTime) / 1000;
+        const pos = elapsed * constants.DIGESTION_WAVE_SPEED;
+        return pos - constants.DIGESTION_WAVE_WIDTH < maxIndex + 2;
+    });
+    return state.digestionWaves.map(wave => {
+        const elapsed = (now - wave.startTime) / 1000;
+        return { color: wave.color, pos: elapsed * constants.DIGESTION_WAVE_SPEED };
+    });
+}
+
+function getSegmentOverlay(activeWaves, index) {
+    let best = null;
+    for (const wave of activeWaves) {
+        const dist = Math.abs(index - wave.pos);
+        if (dist <= constants.DIGESTION_WAVE_WIDTH) {
+            const intensity = 1 - dist / constants.DIGESTION_WAVE_WIDTH;
+            if (!best || intensity > best.intensity) best = { color: wave.color, intensity };
+        }
+    }
+    return best;
+}
+
 function drawRoundedRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -331,6 +362,27 @@ function drawNokiaScene(ctx) {
     ctx.restore();
 }
 
+function hexToRgb(hex) {
+    const clean = hex.replace('#', '');
+    const bigint = parseInt(clean, 16);
+    return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+
+function drawSegmentOverlay(ctx, x, y, gridSize, overlay) {
+    if (!overlay) return;
+    const { r, g, b } = hexToRgb(overlay.color);
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.85, overlay.intensity);
+    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    drawRoundedRect(ctx, x, y, gridSize, gridSize, gridSize / 4);
+    // A soft glow ring around the segment for extra visual pop.
+    ctx.globalAlpha = Math.min(0.4, overlay.intensity * 0.5);
+    ctx.shadowColor = overlay.color;
+    ctx.shadowBlur = gridSize * 0.6;
+    drawRoundedRect(ctx, x, y, gridSize, gridSize, gridSize / 4);
+    ctx.restore();
+}
+
 export function draw(t) {
     const ctx = dom.ctx;
     const now = performance.now();
@@ -341,12 +393,19 @@ export function draw(t) {
         return;
     }
 
+    const activeWaves = updateAndGetActiveWaves(state.snake.length - 1, now);
+
     for (let i = 0; i < state.snake.length; i++) {
         const curr = state.snake[i];
         const prev = state.previousSnake[i] || curr;
         const pos = interpolatePosition(prev, curr, t);
         ctx.fillStyle = i === 0 ? 'darkgreen' : 'limegreen';
-        drawRoundedRect(ctx, pos.x * state.gridSize, pos.y * state.gridSize, state.gridSize, state.gridSize, state.gridSize / 4);
+        const x = pos.x * state.gridSize, y = pos.y * state.gridSize;
+        drawRoundedRect(ctx, x, y, state.gridSize, state.gridSize, state.gridSize / 4);
+        if (activeWaves.length > 0) {
+            const overlay = getSegmentOverlay(activeWaves, i);
+            drawSegmentOverlay(ctx, x, y, state.gridSize, overlay);
+        }
         if (i === 0) drawHeadDetails(ctx, pos, now);
     }
     drawFruit(ctx, now);

@@ -3,7 +3,7 @@
 
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
-import { draw, resizeCanvas, resetBlinkTimer, resetFoodSpawnTimer } from './render.js';
+import { draw, resizeCanvas, resetBlinkTimer, resetFoodSpawnTimer, triggerDigestionWave } from './render.js';
 import { playEatSound, playGameOverSound } from './audio.js';
 import { renderScoreboard, fetchHighScores } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
@@ -74,6 +74,7 @@ function update() {
         dom.scoreCounter.textContent = state.score;
         dom.scoreCounter.classList.add('animateScore');
         playEatSound();
+        triggerDigestionWave(state.food.type);
         generateFood();
     } else {
         state.snake.pop();
@@ -117,6 +118,7 @@ export function initializeGame() {
     state.direction = 'right';
     state.directionQueue = [];
     state.score = 0;
+    state.digestionWaves = [];
     dom.scoreCounter.textContent = state.score;
     generateFood();
     resetBlinkTimer();
