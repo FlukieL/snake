@@ -837,4 +837,122 @@ body.nokia-mode .creator-info {
         font-size: 14px;
         padding: 5px 12px;
     }
+
+    #livesBadge {
+        top: 52px;
+        left: 14px;
+        font-size: 16px;
+        padding: 4px 10px;
+    }
+}
+
+/* Lives badge shown during Levels Mode gameplay, stacked below the level badge */
+#livesBadge {
+    position: absolute;
+    top: 58px;
+    left: 20px;
+    font-size: 20px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 12px;
+    border-radius: 10px;
+    letter-spacing: 2px;
+}
+
+/* Power-up info button (shown in the Levels Mode menu panel) */
+.powerup-info-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    box-shadow: none;
+    border: 1px solid var(--surface-border);
+    width: 100%;
+    display: block;
+    font-size: 13px;
+    padding: 10px 14px;
+    margin: 0.4rem 0 1rem;
+}
+
+.powerup-info-button:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Power-up info modal */
+.powerup-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.powerup-modal-content {
+    background-color: var(--background-color);
+    border: 1px solid var(--surface-border);
+    border-radius: 18px;
+    padding: 1.75rem;
+    max-width: 420px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.powerup-modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.2rem;
+}
+
+.powerup-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.powerup-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    background: var(--surface-color);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.powerup-info-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #0a0a0a;
+}
+
+.powerup-info-text strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.powerup-info-text p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+#powerupInfoCloseButton {
+    width: 100%;
 }

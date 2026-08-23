@@ -94,6 +94,22 @@ export function playLevelUpSound() {
     vibrateController(120);
 }
 
+// Levels Mode: a cheerful jingle when an extra life is earned.
+export function playExtraLifeSound() {
+    if (state.effectsMuted) return;
+    const notes = [784, 988, 1175, 1568];
+    notes.forEach((f, i) => setTimeout(() => playBeep(f, 0.12, 'sine', 0.22), i * 80));
+    vibrateController(150);
+}
+
+// Levels Mode: a low descending buzz when a life is lost (but the game continues).
+export function playLoseLifeSound() {
+    if (state.effectsMuted) return;
+    const notes = [440, 349, 262];
+    notes.forEach((f, i) => setTimeout(() => playBeep(f, 0.18, 'sawtooth', 0.18), i * 110));
+    vibrateController([150, 80, 150]);
+}
+
 export function vibrateController(duration) {
     const gamepads = navigator.getGamepads();
     if (gamepads[0] && gamepads[0].hapticActuators && gamepads[0].hapticActuators.length > 0) {

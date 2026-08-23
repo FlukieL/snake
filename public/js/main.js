@@ -9,6 +9,7 @@ import { initNokiaMode } from './nokiaMode.js';
 import { initLeaderboard } from './leaderboard.js';
 import { initAuth, submitCurrentScoreIfNeeded } from './auth.js';
 import { initInput } from './input.js';
+import { initPowerupInfo } from './powerupInfo.js';
 import {
     initializeGame,
     togglePause,
@@ -120,6 +121,7 @@ function init() {
     initLeaderboard();
     initAuth();
     initInput();
+    initPowerupInfo();
     initScoreAnimationCleanup();
     initMenuButtons();
     initIOSPrompt();

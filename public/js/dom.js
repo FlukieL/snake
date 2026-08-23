@@ -24,7 +24,13 @@ export const dom = {
     signedInAsEl: document.getElementById('signedInAs'),
     scoreCounter: document.getElementById('scoreCounter'),
     levelBadge: document.getElementById('levelBadge'),
+    livesBadge: document.getElementById('livesBadge'),
     scoreboardModeTabs: document.getElementById('scoreboardModeTabs'),
+
+    powerupInfoButton: document.getElementById('powerupInfoButton'),
+    powerupInfoModal: document.getElementById('powerupInfoModal'),
+    powerupInfoCloseButton: document.getElementById('powerupInfoCloseButton'),
+    powerupInfoList: document.getElementById('powerupInfoList'),
 
     eatingSound: new Audio('/EatingSound.mp3'),
     gameOverSound: new Audio('/GameOverSound.mp3'),

@@ -13,7 +13,64 @@ export function resetLevelsState() {
     state.lastPowerupSpawnAttempt = performance.now();
     state.effects.multiplierUntil = 0;
     state.effects.invincibleUntil = 0;
+    state.lives = constants.STARTING_LIVES;
+    state.nextExtraLifeAt = constants.POINTS_PER_EXTRA_LIFE;
     generateObstaclesForLevel();
+}
+
+// Call whenever the score changes in Levels Mode. Awards an extra life every
+// time the score crosses a multiple of POINTS_PER_EXTRA_LIFE. Returns true if
+// a life was awarded (so callers can play a sound/show feedback).
+export function checkForExtraLife() {
+    if (state.gameMode !== 'levels') return false;
+    let awarded = false;
+    while (state.score >= state.nextExtraLifeAt) {
+        state.lives++;
+        state.nextExtraLifeAt += constants.POINTS_PER_EXTRA_LIFE;
+        awarded = true;
+    }
+    return awarded;
+}
+
+// Call on a fatal collision (self or obstacle) while in Levels Mode. If a
+// life remains, consumes one and returns true so the caller can respawn the
+// snake in place of triggering game over. Returns false once lives are gone.
+export function loseLifeOrGameOver() {
+    if (state.gameMode !== 'levels') return false;
+    if (state.lives <= 0) return false;
+    state.lives--;
+    return true;
+}
+
+// Resets the snake back to a safe starting position/length after losing a
+// life, keeping score/level/lives intact. Picks the safest available spot
+// (falling back to the original center if needed).
+export function respawnSnakeAfterLifeLost() {
+    const length = Math.min(state.snake.length, 4);
+    const start = findSafeSpawnPoint();
+    state.snake = [];
+    for (let i = 0; i < length; i++) {
+        state.snake.push({ x: start.x - i, y: start.y });
+    }
+    state.previousSnake = state.snake.map(s => ({ x: s.x, y: s.y }));
+    state.direction = 'right';
+    state.directionQueue = [];
+    // Brief invincibility after respawning so the player isn't immediately
+    // killed again while getting their bearings.
+    state.effects.invincibleUntil = performance.now() + 2000;
+}
+
+function findSafeSpawnPoint() {
+    const attempts = 60;
+    for (let i = 0; i < attempts; i++) {
+        const x = Math.floor(Math.random() * (state.cellCount - 4)) + 2;
+        const y = Math.floor(Math.random() * state.cellCount);
+        if (!state.obstacles.some(o => o.x === x && o.y === y) &&
+            !(state.food.x === x && state.food.y === y)) {
+            return { x, y };
+        }
+    }
+    return { x: 10, y: 10 };
 }
 
 function tickRateForLevel(level) {

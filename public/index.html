@@ -53,7 +53,8 @@
 
             <div class="mode-panel" data-mode-panel="levels" style="display:none;">
                 <button id="startLevelsButton" class="menu-button levels-button">Play Levels</button>
-                <p class="mode-description">Eat 5 fruits to advance. Obstacles and speed increase each level. Watch for power-ups!</p>
+                <p class="mode-description">Eat 5 fruits to advance. Obstacles and speed increase each level. 3 lives to start, +1 life every 30 points. Watch for power-ups!</p>
+                <button id="powerupInfoButton" class="powerup-info-button">❓ What do power-ups do?</button>
                 <div class="scoreboard">
                     <h2>Levels High Scores</h2>
                     <div class="scoreboard-tabs" data-target="levelsHighScoreList" data-mode="levels">
@@ -80,7 +81,16 @@
 
     <div id="scoreCounter">0</div>
     <div id="levelBadge" style="display:none;">Level 1</div>
+    <div id="livesBadge" style="display:none;"></div>
     <canvas id="gameCanvas"></canvas>
+
+    <div id="powerupInfoModal" class="powerup-modal" style="display:none;">
+        <div class="powerup-modal-content">
+            <h2>Power-Ups</h2>
+            <ul id="powerupInfoList" class="powerup-info-list"></ul>
+            <button id="powerupInfoCloseButton">Got it</button>
+        </div>
+    </div>
 
     <div id="gameOverScreen">
         <div class="menu-container">

@@ -5,7 +5,14 @@
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
 import { draw, resizeCanvas, resetBlinkTimer, resetFoodSpawnTimer, triggerDigestionWave } from './render.js';
-import { playEatSound, playGameOverSound, playPowerupSound, playLevelUpSound } from './audio.js';
+import {
+    playEatSound,
+    playGameOverSound,
+    playPowerupSound,
+    playLevelUpSound,
+    playExtraLifeSound,
+    playLoseLifeSound
+} from './audio.js';
 import { renderScoreboard, fetchHighScores } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
 import {
@@ -15,7 +22,10 @@ import {
     isInvincible,
     isScoreMultiplied,
     maybeSpawnPowerup,
-    collectPowerupIfPresent
+    collectPowerupIfPresent,
+    checkForExtraLife,
+    loseLifeOrGameOver,
+    respawnSnakeAfterLifeLost
 } from './levels.js';
 
 function isCellOccupied(x, y) {
@@ -30,6 +40,15 @@ function updateLevelBadge() {
         dom.levelBadge.style.display = 'block';
     } else {
         dom.levelBadge.style.display = 'none';
+    }
+}
+
+function updateLivesBadge() {
+    if (state.gameMode === 'levels' && dom.livesBadge) {
+        dom.livesBadge.textContent = '\u2764\uFE0F '.repeat(Math.max(0, state.lives));
+        dom.livesBadge.style.display = 'block';
+    } else if (dom.livesBadge) {
+        dom.livesBadge.style.display = 'none';
     }
 }
 
@@ -90,6 +109,12 @@ function update() {
     const hitSelf = checkSelfCollision(head);
     const hitObstacle = checkObstacleCollision(head);
     if ((hitSelf || hitObstacle) && !isInvincible()) {
+        if (loseLifeOrGameOver()) {
+            playLoseLifeSound();
+            respawnSnakeAfterLifeLost();
+            updateLivesBadge();
+            return;
+        }
         triggerGameOver();
         return;
     }
@@ -109,6 +134,12 @@ function update() {
         dom.scoreCounter.classList.add('animateScore');
         playEatSound();
         triggerDigestionWave(state.food.type);
+
+        const gotExtraLife = checkForExtraLife();
+        if (gotExtraLife) {
+            playExtraLifeSound();
+            updateLivesBadge();
+        }
 
         const leveledUp = onFruitEatenInLevelsMode();
         if (leveledUp) {
@@ -138,6 +169,7 @@ function triggerGameOver() {
     dom.gameOverScreen.style.display = 'flex';
     resetSubmitUI();
     dom.levelBadge.style.display = 'none';
+    if (dom.livesBadge) dom.livesBadge.style.display = 'none';
 
     const classicScoreboard = document.querySelector('[data-scoreboard="classic"]');
     const levelsScoreboard = document.querySelector('[data-scoreboard="levels"]');
@@ -203,6 +235,7 @@ export function initializeGame(mode) {
     generateFood();
     resetBlinkTimer();
     updateLevelBadge();
+    updateLivesBadge();
     dom.gameMusic.currentTime = 0;
     if (!state.musicMuted) dom.gameMusic.play().catch(() => {});
     dom.gameMusic.loop = true;
@@ -242,4 +275,5 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     dom.scoreCounter.style.display = 'none';
     dom.pauseButton.style.display = 'none';
     dom.levelBadge.style.display = 'none';
+    if (dom.livesBadge) dom.livesBadge.style.display = 'none';
 }

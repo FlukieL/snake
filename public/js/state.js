@@ -34,10 +34,32 @@ export const constants = {
     POWERUP_SPAWN_INTERVAL: 14000, // ms between power-up spawn attempts
     POWERUP_LIFETIME: 8000, // ms a spawned power-up stays on the board before vanishing
     POWERUP_TYPES: {
-        multiplier: { color: '#ffd54f', symbol: '2x', duration: 10000, label: 'Score x2' },
-        invincible: { color: '#4fc3f7', symbol: '\u2605', duration: 6000, label: 'Invincible' },
-        shrink: { color: '#ba68c8', symbol: '-3', duration: 0, label: 'Shrink' }
+        multiplier: {
+            color: '#ffd54f',
+            symbol: '2x',
+            duration: 10000,
+            label: 'Score x2',
+            description: 'Doubles the points earned from every fruit eaten for 10 seconds.'
+        },
+        invincible: {
+            color: '#4fc3f7',
+            symbol: '\u2605',
+            duration: 6000,
+            label: 'Invincible',
+            description: 'Grants 6 seconds of immunity to obstacles and self-collision - crash safely!'
+        },
+        shrink: {
+            color: '#ba68c8',
+            symbol: '-3',
+            duration: 0,
+            label: 'Shrink',
+            description: 'Instantly removes up to 3 segments from the snake\u2019s tail, great for escaping tight obstacle mazes.'
+        }
     },
+
+    // --- Lives (Levels Mode only) ---
+    STARTING_LIVES: 3,
+    POINTS_PER_EXTRA_LIFE: 30,
 
     NOKIA_PIXEL: '#3a3f2e',
     BANNER_LETTER_COLORS: ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'],
@@ -91,6 +113,8 @@ export const state = {
     fruitsEatenThisLevel: 0,
     tickInterval: 1000 / 12,
     obstacles: [], // array of { x, y }
+    lives: 3,
+    nextExtraLifeAt: 30, // score threshold at which the next extra life is awarded
 
     // Active power-ups: spawned pickup on the board, and currently-applied effects.
     activePowerup: null, // { type, x, y, spawnTime }

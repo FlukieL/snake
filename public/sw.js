@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -26,7 +26,8 @@ const APP_SHELL = [
     '/js/leaderboard.js',
     '/js/auth.js',
     '/js/input.js',
-    '/js/levels.js'
+    '/js/levels.js',
+    '/js/powerupInfo.js'
 ];
 
 const STATIC_MEDIA = [
