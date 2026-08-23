@@ -21,12 +21,46 @@ function tickRateForLevel(level) {
     return Math.min(rate, constants.LEVEL_MAX_TICK_RATE);
 }
 
-function isOccupied(x, y) {
+// Cells directly ahead of the snake's head (in its current direction of travel)
+// that should be kept clear of obstacles, so a wall can never suddenly appear
+// right in the snake's path with no time to react. Also wraps around the
+// board edges, since the snake itself wraps.
+function getSafeCorridorCells() {
+    const cells = [];
+    if (!state.snake.length) return cells;
+    const head = state.snake[0];
+    const dir = state.direction;
+    const corridorLength = 4;
+
+    let dx = 0, dy = 0;
+    switch (dir) {
+        case 'up': dy = -1; break;
+        case 'down': dy = 1; break;
+        case 'left': dx = -1; break;
+        case 'right': dx = 1; break;
+    }
+
+    for (let i = 1; i <= corridorLength; i++) {
+        let x = head.x + dx * i;
+        let y = head.y + dy * i;
+        // Wrap around edges, matching the snake's own wrap-around movement.
+        if (x < 0) x = state.cellCount - 1;
+        else if (x >= state.cellCount) x = 0;
+        if (y < 0) y = state.cellCount - 1;
+        else if (y >= state.cellCount) y = 0;
+        cells.push({ x, y });
+    }
+    return cells;
+}
+
+function isOccupied(x, y, safeCorridor) {
     if (state.snake.some(s => s.x === x && s.y === y)) return true;
     if (state.food.x === x && state.food.y === y) return true;
     if (state.obstacles.some(o => o.x === x && o.y === y)) return true;
     // Keep a small safe zone around the snake's starting position.
     if (Math.abs(x - 10) <= 1 && Math.abs(y - 10) <= 1) return true;
+    // Never place an obstacle directly in the snake's immediate path.
+    if (safeCorridor && safeCorridor.some(c => c.x === x && c.y === y)) return true;
     return false;
 }
 
@@ -36,13 +70,14 @@ function generateObstaclesForLevel() {
 
     const extraLevels = state.level - constants.OBSTACLES_START_LEVEL + 1;
     const count = Math.min(constants.MAX_OBSTACLES, extraLevels * constants.OBSTACLES_PER_LEVEL);
+    const safeCorridor = getSafeCorridorCells();
 
     let attempts = 0;
     while (state.obstacles.length < count && attempts < count * 20) {
         attempts++;
         const x = Math.floor(Math.random() * state.cellCount);
         const y = Math.floor(Math.random() * state.cellCount);
-        if (!isOccupied(x, y)) {
+        if (!isOccupied(x, y, safeCorridor)) {
             state.obstacles.push({ x, y });
         }
     }
