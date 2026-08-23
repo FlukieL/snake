@@ -665,6 +665,21 @@ body.nokia-mode .logo-container {
     display: none !important;
 }
 
+.nokia-ascii-logo {
+    display: none;
+}
+
+body.nokia-mode .nokia-ascii-logo {
+    display: block !important;
+    font-family: 'VT323', monospace !important;
+    font-size: 13px !important;
+    line-height: 1.05 !important;
+    color: #2b2f1f !important;
+    margin: 0 auto 14px !important;
+    white-space: pre !important;
+    text-align: center;
+}
+
 body.nokia-mode button {
     background: #2b2f1f !important;
     color: #9ead86 !important;

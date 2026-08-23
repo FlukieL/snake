@@ -46,6 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let nokiaMode = loadMuteState('nokiaMode', false);
     const nokiaModeButton = document.getElementById('nokiaModeButton');
     const nokiaModePauseButton = document.getElementById('nokiaModePauseButton');
+    const nokiaAsciiLogo = document.getElementById('nokiaAsciiLogo');
+
+    const NOKIA_ASCII_LOGO =
+        '   _____             _\n' +
+        '  / ____|           | |\n' +
+        ' | (___  _ __   __ _| | _____\n' +
+        '  \\___ \\| \'_ \\ / _` | |/ / _ \\\n' +
+        '  ____) | | | | (_| |   <  __/\n' +
+        ' |_____/|_| |_|\\__,_|_|\\_\\___|';
 
     function applyNokiaMode() {
         document.body.classList.toggle('nokia-mode', nokiaMode);
@@ -58,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
             nokiaModePauseButton.textContent = label;
             nokiaModePauseButton.classList.toggle('active', nokiaMode);
         }
+        if (nokiaAsciiLogo) {
+            nokiaAsciiLogo.textContent = nokiaMode ? NOKIA_ASCII_LOGO : '';
+        }
     }
 
     function toggleNokiaMode() {
@@ -69,6 +81,46 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nokiaModeButton) nokiaModeButton.addEventListener('click', toggleNokiaMode);
     if (nokiaModePauseButton) nokiaModePauseButton.addEventListener('click', toggleNokiaMode);
     applyNokiaMode();
+
+    // --- Simple synthesizer sound effects for Nokia Mode (Web Audio API beeps) ---
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        return audioCtx;
+    }
+
+    function playBeep(freq, duration, type, volume) {
+        const ac = getAudioContext();
+        if (!ac) return;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type || 'square';
+        osc.frequency.value = freq;
+        gain.gain.value = volume != null ? volume : 0.15;
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        const now = ac.currentTime;
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.start(now);
+        osc.stop(now + duration);
+    }
+
+    function playNokiaEatSound() {
+        // Two quick ascending square-wave beeps, reminiscent of old phone UI blips.
+        playBeep(880, 0.07, 'square', 0.18);
+        setTimeout(() => playBeep(1320, 0.08, 'square', 0.18), 60);
+    }
+
+    function playNokiaGameOverSound() {
+        // Descending beep sequence
+        const notes = [660, 550, 440, 330];
+        notes.forEach((f, i) => setTimeout(() => playBeep(f, 0.16, 'square', 0.2), i * 130));
+    }
 
     function initializeGame() {
         gameOver = false; gamePaused = false; scoreSubmitted = false; inGame = true;
@@ -434,8 +486,12 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreCounter.textContent = score;
             scoreCounter.classList.add('animateScore');
             if (!effectsMuted) {
-                eatingSound.currentTime = 0;
-                eatingSound.play().catch(() => {});
+                if (nokiaMode) {
+                    playNokiaEatSound();
+                } else {
+                    eatingSound.currentTime = 0;
+                    eatingSound.play().catch(() => {});
+                }
                 vibrateController(100);
             }
             generateFood();
@@ -447,7 +503,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function triggerGameOver() {
         gameOver = true;
         if (!effectsMuted) {
-            gameOverSound.play().catch(() => {});
+            if (nokiaMode) {
+                playNokiaGameOverSound();
+            } else {
+                gameOverSound.play().catch(() => {});
+            }
             vibrateController([200, 100, 200]);
         }
         gameMusic.pause();
