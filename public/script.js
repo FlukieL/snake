@@ -259,8 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
         finalScore.innerText = score;
         gameOverScreen.style.display = 'flex';
         resetSubmitUI();
-        renderHighScores(gameOverHighScoreList, cachedTopScores);
-        fetchHighScores();
+        renderScoreboard(gameOverHighScoreList, cachedScoresByPeriod[activePeriod.gameOverHighScoreList]);
+        fetchHighScores('alltime');
+        fetchHighScores('weekly');
     }
 
     function queueDirection(newDir) {
@@ -392,21 +393,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setInterval(handleGamepad, 50);
 
-    let cachedTopScores = loadCachedHighScores();
-    renderHighScores(highScoreList, cachedTopScores);
+    let cachedScoresByPeriod = { alltime: loadCachedHighScores('alltime'), weekly: loadCachedHighScores('weekly') };
+    let activePeriod = { highScoreList: 'alltime', gameOverHighScoreList: 'alltime' };
 
-    function loadCachedHighScores() {
+    function loadCachedHighScores(period) {
         try {
-            const stored = localStorage.getItem('highScores');
+            const stored = localStorage.getItem('highScores_' + period);
             return stored ? JSON.parse(stored) : [];
         } catch (e) {
             return [];
         }
     }
 
-    function saveCachedHighScores(scores) {
+    function saveCachedHighScores(period, scores) {
         try {
-            localStorage.setItem('highScores', JSON.stringify(scores));
+            localStorage.setItem('highScores_' + period, JSON.stringify(scores));
         } catch (e) { /* ignore */ }
     }
 
@@ -420,6 +421,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const datePart = date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
         const timePart = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         return `${datePart} ${timePart}`;
+    }
+
+    const BANNER_LETTER_COLORS = ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'];
+
+    function animateTopPlayerBanner(bannerEl, topEntry) {
+        bannerEl.innerHTML = '';
+        if (!topEntry) {
+            bannerEl.style.display = 'none';
+            return;
+        }
+        bannerEl.style.display = 'flex';
+        const text = `\uD83C\uDFC6 ${topEntry.name} \u2014 ${topEntry.score}`;
+        text.split('').forEach((ch, i) => {
+            const span = document.createElement('span');
+            span.textContent = ch === ' ' ? '\u00A0' : ch;
+            span.className = 'banner-letter';
+            span.style.color = BANNER_LETTER_COLORS[i % BANNER_LETTER_COLORS.length];
+            span.style.animationDelay = `${i * 0.045}s`;
+            bannerEl.appendChild(span);
+        });
     }
 
     function renderHighScores(listElement, scores) {
@@ -460,21 +481,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function fetchHighScores() {
+    function bannerElFor(listElement) {
+        if (listElement === highScoreList) return document.getElementById('homeTopPlayerBanner');
+        if (listElement === gameOverHighScoreList) return document.getElementById('gameOverTopPlayerBanner');
+        return null;
+    }
+
+    function renderScoreboard(listElement, scores) {
+        renderHighScores(listElement, scores);
+        const banner = bannerElFor(listElement);
+        if (banner) animateTopPlayerBanner(banner, scores && scores[0]);
+    }
+
+    async function fetchHighScores(period) {
         try {
-            const res = await fetch('/api/scores');
+            const res = await fetch('/api/scores?period=' + encodeURIComponent(period));
             if (!res.ok) throw new Error('Bad response');
             const data = await res.json();
-            cachedTopScores = data.scores || [];
-            saveCachedHighScores(cachedTopScores);
-            renderHighScores(highScoreList, cachedTopScores);
-            renderHighScores(gameOverHighScoreList, cachedTopScores);
+            cachedScoresByPeriod[period] = data.scores || [];
+            saveCachedHighScores(period, cachedScoresByPeriod[period]);
         } catch (err) {
-            // Fall back to whatever we have cached locally
-            renderHighScores(highScoreList, cachedTopScores);
-            renderHighScores(gameOverHighScoreList, cachedTopScores);
+            // Fall back to whatever we have cached locally for this period
         }
+        if (activePeriod.highScoreList === period) renderScoreboard(highScoreList, cachedScoresByPeriod[period]);
+        if (activePeriod.gameOverHighScoreList === period) renderScoreboard(gameOverHighScoreList, cachedScoresByPeriod[period]);
     }
+
+    function setupScoreboardTabs() {
+        document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
+            const targetId = tabsEl.getAttribute('data-target');
+            const listElement = document.getElementById(targetId);
+            tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const period = btn.getAttribute('data-period');
+                    tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activePeriod[targetId] = period;
+                    renderScoreboard(listElement, cachedScoresByPeriod[period]);
+                    fetchHighScores(period);
+                });
+            });
+        });
+    }
+    setupScoreboardTabs();
 
     // --- Google Sign-In (verified name for leaderboard submissions) ---
     let googleIdToken = null;
@@ -537,10 +586,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 scoreSubmitted = false;
                 return;
             }
-            cachedTopScores = data.scores || cachedTopScores;
-            saveCachedHighScores(cachedTopScores);
-            renderHighScores(highScoreList, cachedTopScores);
-            renderHighScores(gameOverHighScoreList, cachedTopScores);
+            // A successful submission always changes the all-time leaderboard, and may also
+            // affect the weekly one - refresh both from the server to stay accurate.
+            cachedScoresByPeriod.alltime = data.scores || cachedScoresByPeriod.alltime;
+            saveCachedHighScores('alltime', cachedScoresByPeriod.alltime);
+            if (activePeriod.highScoreList === 'alltime') renderScoreboard(highScoreList, cachedScoresByPeriod.alltime);
+            if (activePeriod.gameOverHighScoreList === 'alltime') renderScoreboard(gameOverHighScoreList, cachedScoresByPeriod.alltime);
+            fetchHighScores('weekly');
         } catch (err) {
             // Network failure: we deliberately do NOT fake a local entry here, since without
             // contacting the server we can't have a verified name - the score submission is lost
@@ -572,7 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
         submitScoreButton.textContent = 'Submitted';
     });
 
-    fetchHighScores();
+    renderScoreboard(highScoreList, cachedScoresByPeriod.alltime);
+    renderScoreboard(gameOverHighScoreList, cachedScoresByPeriod.alltime);
+    fetchHighScores('alltime');
+    fetchHighScores('weekly');
 
     function isGameplayActive() {
         // Music should only auto-resume on unmute if we're actually in an active,

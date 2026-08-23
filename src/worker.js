@@ -83,38 +83,6 @@ async function verifyGoogleIdToken(idToken) {
     return payload;
 }
 
-// Extensive profanity/slur blocklist (lowercase, no separators).
-// Matching is done against a normalized version of the submitted name that:
-//  - lowercases everything
-//  - maps common leetspeak substitutions back to letters (0->o, 1->i, 3->e, 4->a, 5->s, 7->t, @->a, $->s)
-//  - strips all non-alphanumeric characters (spaces, punctuation, repeated chars collapsed)
-// This catches most obfuscation attempts (e.g. "a55hole", "f_u_c_k", "sh1t").
-const PROFANITY_LIST = [
-    'anal','anus','arse','ass','asshole','bastard','bitch','bollock','boob',
-    'bugger','bullshit','chink','clit','cock','coon','cracker','crap','cum',
-    'cunt','dago','damn','dick','dildo','dyke','fag','faggot','feck','fuck',
-    'fucker','fucking','gook','handjob','hell','hoe','homo','honkey','jerk',
-    'jizz','kike','kraut','kys','lesbo','loli','masturbate','milf','nazi',
-    'negro','nigga','nigger','orgasm','paki','penis','piss','poon','porn',
-    'prick','pube','pussy','queer','rape','rapist','retard','sadist','semen',
-    'sex','shit','slave','slut','spic','spook','suicide','tard','testicle',
-    'thot','tit','twat','vagina','wank','wetback','whore','wop'
-];
-
-function normalizeForFilter(str) {
-    const leetMap = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's' };
-    let normalized = str.toLowerCase();
-    normalized = normalized.split('').map(ch => leetMap[ch] !== undefined ? leetMap[ch] : ch).join('');
-    // Remove everything that isn't a-z or 0-9 (already substituted), collapsing separators used to dodge filters
-    normalized = normalized.replace(/[^a-z0-9]/g, '');
-    return normalized;
-}
-
-function containsProfanity(name) {
-    const normalized = normalizeForFilter(name);
-    return PROFANITY_LIST.some(word => normalized.includes(word));
-}
-
 function jsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
@@ -139,18 +107,20 @@ function sanitizeName(rawName) {
     return name;
 }
 
-async function getTopScores(db) {
-    const { results } = await db
-        .prepare('SELECT name, score, created_at FROM scores ORDER BY score DESC, created_at ASC LIMIT ?1')
-        .bind(TOP_N)
-        .all();
+async function getTopScores(db, period) {
+    const query = period === 'weekly'
+        ? "SELECT name, score, created_at FROM scores WHERE created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1"
+        : 'SELECT name, score, created_at FROM scores ORDER BY score DESC, created_at ASC LIMIT ?1';
+    const { results } = await db.prepare(query).bind(TOP_N).all();
     return results || [];
 }
 
-async function handleGetScores(env) {
+async function handleGetScores(request, env) {
     try {
-        const scores = await getTopScores(env.DB);
-        return jsonResponse({ scores });
+        const url = new URL(request.url);
+        const period = url.searchParams.get('period') === 'weekly' ? 'weekly' : 'alltime';
+        const scores = await getTopScores(env.DB, period);
+        return jsonResponse({ scores, period });
     } catch (err) {
         return jsonResponse({ error: 'Failed to load scores' }, 500);
     }
@@ -187,9 +157,6 @@ async function handlePostScore(request, env) {
     if (!name) {
         return jsonResponse({ error: 'Name is required' }, 400);
     }
-    if (containsProfanity(name)) {
-        return jsonResponse({ error: 'Name contains inappropriate language' }, 400);
-    }
 
     try {
         await env.DB
@@ -197,7 +164,7 @@ async function handlePostScore(request, env) {
             .bind(name, score)
             .run();
 
-        const scores = await getTopScores(env.DB);
+        const scores = await getTopScores(env.DB, 'alltime');
         return jsonResponse({ scores }, 201);
     } catch (err) {
         return jsonResponse({ error: 'Failed to save score' }, 500);
@@ -210,7 +177,7 @@ export default {
 
         if (url.pathname === '/api/scores') {
             if (request.method === 'GET') {
-                return handleGetScores(env);
+                return handleGetScores(request, env);
             }
             if (request.method === 'POST') {
                 return handlePostScore(request, env);

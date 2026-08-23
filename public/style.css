@@ -178,6 +178,79 @@ button:disabled:hover {
     box-sizing: border-box;
 }
 
+.scoreboard-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    box-shadow: none;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+    transform: none;
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: #0a0a0a;
+    box-shadow: 0 2px 8px rgba(51, 209, 122, 0.3);
+}
+
+.top-player-banner {
+    display: none;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    padding: 8px 6px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, rgba(255, 213, 79, 0.12), rgba(51, 209, 122, 0.12));
+    border: 1px solid rgba(255, 213, 79, 0.25);
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    overflow: hidden;
+}
+
+.banner-letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+    animation: letterPop 0.4s ease-out forwards;
+}
+
+@keyframes letterPop {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.7);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-3px) scale(1.15);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 .scoreboard h2 {
     font-size: 1.2rem;
     margin-bottom: 8px;
