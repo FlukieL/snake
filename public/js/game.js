@@ -212,6 +212,17 @@ export function gameLoop(currentTime) {
 
 export function initializeGame(mode) {
     state.gameMode = mode || state.gameMode || 'classic';
+    document.body.classList.toggle('levels-mode', state.gameMode === 'levels');
+    // Nokia Mode is Classic-only - hide its pause-screen toggle, and visually
+    // suppress the theme entirely, while playing Levels Mode.
+    if (dom.nokiaModePauseButton) {
+        dom.nokiaModePauseButton.style.display = state.gameMode === 'levels' ? 'none' : 'block';
+    }
+    if (state.gameMode === 'levels') {
+        document.body.classList.remove('nokia-mode');
+    } else if (state.nokiaMode) {
+        document.body.classList.add('nokia-mode');
+    }
     state.gameOver = false;
     state.gamePaused = false;
     state.scoreSubmitted = false;
@@ -268,6 +279,16 @@ export function startGameSession(mode) {
 
 export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     state.inGame = false;
+    // Restore the theme to match whichever mode tab is currently selected on
+    // the main menu (defaults to Classic), rather than assuming Classic.
+    const activeModeTabBtn = document.querySelector('.mode-tab-btn.active');
+    const menuMode = activeModeTabBtn ? activeModeTabBtn.getAttribute('data-mode') : 'classic';
+    document.body.classList.toggle('levels-mode', menuMode === 'levels');
+    if (menuMode === 'levels') {
+        document.body.classList.remove('nokia-mode');
+    } else if (state.nokiaMode) {
+        document.body.classList.add('nokia-mode');
+    }
     dom.gameOverScreen.style.display = 'none';
     submitCurrentScoreIfNeeded();
     dom.startGameScreen.style.display = 'flex';

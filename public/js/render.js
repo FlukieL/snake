@@ -466,7 +466,10 @@ export function draw(t) {
     const now = performance.now();
     ctx.clearRect(0, 0, dom.canvas.width, dom.canvas.height);
 
-    if (state.nokiaMode) {
+    // Nokia Mode is restricted to Classic mode only - Levels Mode always uses
+    // full-color rendering (obstacles, power-ups, purple theme) regardless of
+    // whether the Nokia toggle happens to be on.
+    if (state.nokiaMode && state.gameMode !== 'levels') {
         drawNokiaScene(ctx);
         return;
     }
@@ -480,7 +483,9 @@ export function draw(t) {
         const curr = state.snake[i];
         const prev = state.previousSnake[i] || curr;
         const pos = interpolatePosition(prev, curr, t);
-        ctx.fillStyle = i === 0 ? 'darkgreen' : 'limegreen';
+        ctx.fillStyle = state.gameMode === 'levels'
+            ? (i === 0 ? constants.LEVELS_SNAKE_HEAD : constants.LEVELS_SNAKE_BODY)
+            : (i === 0 ? 'darkgreen' : 'limegreen');
         const x = pos.x * state.gridSize, y = pos.y * state.gridSize;
         drawRoundedRect(ctx, x, y, state.gridSize, state.gridSize, state.gridSize / 4);
         if (activeWaves.length > 0) {

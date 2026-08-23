@@ -209,6 +209,8 @@ export function initLeaderboardTabs() {
 }
 
 // Toggle between the Classic/Levels mode panels (and their scoreboards) on the main menu.
+// Nokia Mode is a Classic-only visual theme, so its toggle button is hidden
+// whenever the Levels panel is selected (it has no effect in Levels Mode).
 export function initModeTabs() {
     if (!dom.scoreboardModeTabs) return;
     dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn').forEach(btn => {
@@ -219,6 +221,21 @@ export function initModeTabs() {
             document.querySelectorAll('[data-mode-panel]').forEach(panel => {
                 panel.style.display = panel.getAttribute('data-mode-panel') === mode ? 'block' : 'none';
             });
+            if (dom.nokiaModeButton) {
+                dom.nokiaModeButton.style.display = mode === 'levels' ? 'none' : 'block';
+            }
+            // Apply the purple Levels theme to the whole page as soon as the
+            // Levels panel is selected on the main menu, not just in-game.
+            document.body.classList.toggle('levels-mode', mode === 'levels');
+            // Nokia Mode is Classic-only: if it happens to be enabled, visually
+            // suppress it while viewing/playing Levels Mode (its persisted
+            // setting/state.nokiaMode is left untouched, so it resumes the
+            // moment the player switches back to Classic).
+            if (mode === 'levels') {
+                document.body.classList.remove('nokia-mode');
+            } else if (state.nokiaMode) {
+                document.body.classList.add('nokia-mode');
+            }
         });
     });
 }

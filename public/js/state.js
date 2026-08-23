@@ -62,6 +62,11 @@ export const constants = {
     POINTS_PER_EXTRA_LIFE: 30,
 
     NOKIA_PIXEL: '#3a3f2e',
+    // Levels Mode theme colors (matches the "Play Levels" button's purple).
+    LEVELS_ACCENT: '#ba68c8',
+    LEVELS_ACCENT_DARK: '#7d3f8e',
+    LEVELS_SNAKE_HEAD: '#7d3f8e',
+    LEVELS_SNAKE_BODY: '#ba68c8',
     BANNER_LETTER_COLORS: ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'],
     RANK_MEDALS: { 2: 'silver', 3: 'bronze' },
     GOOGLE_CLIENT_ID: '600684655874-jfqakqf9snp67eikljkfsl3qmbtopin5.apps.googleusercontent.com',
