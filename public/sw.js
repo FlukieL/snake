@@ -1,4 +1,4 @@
-const CACHE_NAME = 'snake-cache-v3';
+const CACHE_NAME = 'snake-cache-v4';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -12,16 +12,15 @@ const urlsToCache = [
     '/android-chrome-512x512.png',
     '/apple-touch-icon.png',
     '/favicon-16x16.png',
-    '/favicon-32x32.png'
+    '/favicon-32x32.png',
+    '/logo.jpg',
+    '/site.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
+            .then((cache) => cache.addAll(urlsToCache))
     );
 });
 
@@ -40,30 +39,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
+    // Never cache the leaderboard API - always go to the network for live data
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
-                // Cache hit - return response from cache
-                if (response) {
-                    return response;
-                }
-                // Clone the request for fetching from the network
+                if (response) return response;
                 return fetch(event.request.clone())
                     .then((networkResponse) => {
-                        // If we get a successful response from the network,
-                        // put it in the cache and also return the response.
                         if (networkResponse.status === 200) {
                             caches.open(CACHE_NAME)
-                                .then((cache) => {
-                                    cache.put(event.request, networkResponse.clone());
-                                });
+                                .then((cache) => cache.put(event.request, networkResponse.clone()));
                         }
                         return networkResponse;
                     })
                     .catch((error) => {
                         console.error('Error fetching:', error);
-                        // Fallback: Could return a cached error page here.
-                        throw error; 
+                        throw error;
                     });
             })
     );

@@ -2,20 +2,21 @@
 <html lang="en">
 
 <head>
+    <meta charset="UTF-8" />
     <title>Snake</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#ffffff">
-    <script src="sw.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#0f0f0f">
+    <link rel="stylesheet" href="/style.css">
 
     <!-- Open Graph meta tags -->
     <meta property="og:title" content="Snake Game">
     <meta property="og:description" content="Snake Game made by Luke Harper">
-    <meta property="og:image" content="logo.jpg">
+    <meta property="og:image" content="/logo.jpg">
     <meta property="og:url" content="https://snake.lukeharper.co.uk">
     <meta name="twitter:card" content="summary_large_image">
 </head>
@@ -23,37 +24,37 @@
 <body>
     <div id="startGameScreen">
         <div class="logo-container">
-            <img src="logo.jpg" alt="Snake Game Logo">
+            <img src="/logo.jpg" alt="Snake Game Logo">
         </div>
-        <!-- <h1>Snake Game</h1> -->
         <div class="menu-container">
             <button id="startButton" class="menu-button">Play Game</button>
             <div class="scoreboard">
                 <h2>High Scores</h2>
-                <ol id="highScoreList"></ol>
+                <ol id="highScoreList"><li class="loading">Loading&hellip;</li></ol>
             </div>
             <div class="button-group">
                 <button id="muteMusicButton" class="mute-button">Mute Music</button>
                 <button id="muteEffectsButton" class="mute-button">Mute Effects</button>
             </div>
             <div class="links">
-                <a href="https://github.com/FlukieL/snake" target="_blank">GitHub Repository</a>
-                <a href="https://links.lukeharper.co.uk" target="_blank">Links Page</a>
+                <a href="https://github.com/FlukieL/snake" target="_blank" rel="noopener">GitHub Repository</a>
+                <a href="https://links.lukeharper.co.uk" target="_blank" rel="noopener">Links Page</a>
             </div>
             <div class="creator-info">Created by Luke Harper with AI</div>
         </div>
     </div>
 
-    <div id="scoreCounter">0</div> <!-- Score Counter -->
+    <div id="scoreCounter">0</div>
     <canvas id="gameCanvas"></canvas>
+
     <div id="gameOverScreen">
         <h2>Game Over</h2>
         <p>Score: <span id="finalScore"></span></p>
         <div class="scoreboard">
-            <ol id="gameOverHighScoreList">
-            </ol>
+            <ol id="gameOverHighScoreList"></ol>
         </div>
-        <input type="text" id="highScoreInput" placeholder="Enter your name">
+        <input type="text" id="highScoreInput" placeholder="Enter your name" maxlength="16" autocomplete="off">
+        <button id="submitScoreButton">Submit Score</button>
         <button id="restartButton">Play Again</button>
         <button id="mainMenuButton">Main Menu</button>
         <button id="muteMusicGameOverButton" class="mute-button">Mute Music</button>
@@ -66,38 +67,27 @@
         <button id="muteEffectsPauseButton" class="mute-button">Mute Effects</button>
     </div>
 
-    <button id="pauseButton">Pause</button> <!-- Pause button for touch devices -->
-    <script src="script.js" defer></script>
+    <button id="pauseButton">Pause</button>
+
+    <div id="iosPrompt">
+        <p>To play this game properly, tap the Share button and select "Add to Home Screen".</p>
+        <button id="dismissPrompt">Dismiss</button>
+    </div>
+
+    <script src="/script.js" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
             });
         }
-    </script>
-    <!-- iOS Prompt -->
-    <div id="iosPrompt" style="display: none; position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;">
-        <p>To play this game properly, tap the Share button and select "Add to Home Screen".</p>
-        <button id="dismissPrompt" style="margin-top: 10px; background-color: red; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Dismiss</button>
-    </div>
 
-    <script>
-        // Check if the user is on iOS Safari and not in standalone mode
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-
         if (isIOS && !isStandalone) {
             document.getElementById('iosPrompt').style.display = 'block';
         }
-
-        // Dismiss the prompt when the button is clicked
-        document.getElementById('dismissPrompt').addEventListener('click', function() {
+        document.getElementById('dismissPrompt').addEventListener('click', () => {
             document.getElementById('iosPrompt').style.display = 'none';
         });
     </script>

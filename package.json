@@ -1,0 +1,16 @@
+{
+  "name": "snake-game",
+  "version": "2.0.0",
+  "description": "Modern Snake game deployed on Cloudflare Workers with a D1-backed global leaderboard",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create snake-scores",
+    "db:migrate:local": "wrangler d1 execute snake-scores --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute snake-scores --remote --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

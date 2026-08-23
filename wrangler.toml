@@ -1,0 +1,18 @@
+name = "snake-game"
+main = "src/worker.js"
+compatibility_date = "2024-09-23"
+
+# Static assets (HTML, CSS, JS, images, audio) are served directly by the Worker
+# via the Assets binding. Any request that doesn't match an asset falls through
+# to the Worker code in src/worker.js (used here for the /api/scores endpoints).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "none"
+
+# D1 database binding for the global leaderboard.
+# After running `npm run db:create`, copy the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "snake-scores"
+database_id = "fee8890c-6e35-459e-b54f-1398a0e12301"

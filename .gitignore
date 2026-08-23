@@ -1,0 +1,9 @@
+# graphify-axet
+.graphify/
+
+# Node
+node_modules/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars

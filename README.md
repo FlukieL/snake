@@ -1,46 +1,94 @@
 # Snake
-![image](https://github.com/user-attachments/assets/7c9848c5-046b-4d21-9aef-154084555f88)
 
-Basic snake game made with Claude / Other AI tools
+A modern, responsive recreation of the classic Snake game — smoother movement, a tighter control feel, and a global leaderboard powered by Cloudflare D1. Deployed entirely on Cloudflare Workers.
 
-This is a simple Snake game where the player controls a snake that moves around the game board, eating food to grow longer.
+**Play it:** https://snake.lukeharper.co.uk
 
-## How to Play
+![Snake Game Screenshot](public/screenshot-1.jpg)
 
-1. Use the arrow keys (Up, Down, Left, Right) or WASD or Gamepad or Touch Input to control the direction of the snake.
-2. Eat the food (represented by a red apple) to grow your snake and increase your score.
-3. Avoid colliding with the snake's own tail, as this will end the game.
+## Features
 
-Play the game here: [https://snake.lukeharper.co.uk](https://snake.lukeharper.co.uk)
+- Classic Snake gameplay with screen-wrap edges
+- Smooth interpolated rendering at a responsive 12 ticks/sec logic rate for a tighter, more modern feel
+- Animated snake head (eyes + tongue) and apple-styled food
+- Keyboard (Arrow keys / WASD), touch swipe, and Gamepad support (with controller vibration)
+- Pause/resume, mute controls for music and sound effects (persisted in `localStorage`)
+- PWA support — installable, works offline via a Service Worker
+- Global leaderboard backed by Cloudflare D1, with automatic fallback to a local cache if offline
+- iOS "Add to Home Screen" prompt
 
-## Design
-Iterative design using a mixture of AI tools with Cursor / Claude / GPT. Focus was to ensure support across multiple devices with controller input, touch input and keyboard input.
+## Tech Stack
 
-## Music
-Music was generated with Suno AI.
-Track was a chiptune style track to fit the mood of the game.
+- **Frontend:** Vanilla HTML/CSS/JS, Canvas 2D rendering — no build step required
+- **Backend:** Cloudflare Worker (`src/worker.js`) serving static assets and a small JSON API
+- **Database:** Cloudflare D1 (SQLite) for the leaderboard (`scores` table)
+- **Deployment:** Cloudflare Workers, deployed automatically from GitHub via Cloudflare's Git integration
 
-![image](https://github.com/user-attachments/assets/6b8283c9-5721-4363-b724-d5dab422057e)
+## Project Structure
 
-https://suno.com/song/df087a44-0398-4a81-b667-2d0bf6ee1ae1
+```
+├── public/              # Static assets served by the Worker (HTML, CSS, JS, media, icons)
+│   ├── index.html
+│   ├── style.css
+│   ├── script.js
+│   ├── sw.js            # Service worker for offline/PWA support
+│   └── ...
+├── src/
+│   └── worker.js         # Worker entrypoint: serves assets + /api/scores endpoints
+├── schema.sql             # D1 database schema
+├── wrangler.toml          # Cloudflare Worker configuration
+└── package.json
+```
 
-[GameOverSound.webm](https://github.com/user-attachments/assets/64ff035d-396b-4e5e-847b-70f4359e25ee)
+## API
 
-Gameover music was generated with elevenlabs.io
+- `GET /api/scores` — returns the top 10 scores as JSON: `{ "scores": [{ "name", "score", "created_at" }] }`
+- `POST /api/scores` — submits a new score. Body: `{ "name": string, "score": integer }`. Returns the updated top 10.
 
-## Sound
-[EatingSound.webm](https://github.com/user-attachments/assets/073427fa-f092-4130-878f-a1987f5af907)
+## Local Development
 
-Eating sound was generated with elevenlabs.io
+1. Install dependencies:
+   ```
+   npm install
+   ```
+2. Create the local D1 database and apply the schema:
+   ```
+   npm run db:migrate:local
+   ```
+3. Run the dev server (serves the Worker + static assets, using a local D1 instance):
+   ```
+   npm run dev
+   ```
+4. Open the URL shown in the terminal (typically `http://localhost:8787`).
 
-## Art / Logo
-![image](https://github.com/user-attachments/assets/197a48fa-b0d4-4644-aee7-5d87275947ad)
+## Deploying to Cloudflare (first-time setup)
 
-Logo was generated with Bing Image Creator.
+### 1. Create the D1 database
 
-## Credits
+```
+npm run db:create
+```
 
-- [Luke Harper](https://lukeharper.co.uk) - Game development
-- [Suno AI](https://suno.ai) - Music generation
-- [Bing Image Creator](https://bing.com/create) - Logo generation
-- [elevenlabs.io](https://elevenlabs.io/app/sound-effects) - Sound generation
+This prints a `database_id`. Copy it into `wrangler.toml`, replacing `REPLACE_WITH_YOUR_D1_DATABASE_ID`.
+
+### 2. Apply the schema to the remote database
+
+```
+npm run db:migrate:remote
+```
+
+### 3. Connect the GitHub repo to Cloudflare Workers
+
+1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Workers** → **Import a repository** (or **Connect to Git** on an existing Worker).
+2. Select the `snake` GitHub repository and the branch to deploy from (e.g. `main`).
+3. Cloudflare will detect `wrangler.toml` automatically — no build command is needed since this is a plain Worker with static assets.
+4. Under **Settings → Bindings**, confirm the `DB` binding is pointing at the `snake-scores` D1 database (this is defined in `wrangler.toml`, but double check after the first deploy).
+5. Save and deploy. From then on, every push to the connected branch automatically redeploys.
+
+### 4. Custom domain (optional)
+
+In the Worker's **Settings → Domains & Routes**, add your custom domain (e.g. `snake.lukeharper.co.uk`) and follow the DNS instructions provided.
+
+## Notes on Credentials
+
+This project only requires a Cloudflare account connected via the dashboard's Git integration — no API tokens or secret keys are stored in the repository. The D1 database binds directly to the Worker with zero credentials needed in code.
