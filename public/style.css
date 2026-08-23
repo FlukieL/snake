@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 :root {
     --background-color: #101014;
@@ -597,4 +598,121 @@ button:disabled:hover {
         max-width: 95vw;
         max-height: 95vw;
     }
+}
+
+/* Nokia Mode toggle button */
+.nokia-toggle-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    box-shadow: none;
+    border: 1px solid var(--surface-border);
+    width: 100%;
+    display: block;
+}
+
+.nokia-toggle-button.active {
+    background-color: rgba(51, 209, 122, 0.25);
+    border-color: rgba(51, 209, 122, 0.5);
+    color: #7dffb0;
+}
+
+/* ============================================================ */
+/* NOKIA MODE - classic monochrome LCD Snake look                */
+/* ============================================================ */
+body.nokia-mode {
+    background: #9ead86 !important;
+}
+
+body.nokia-mode * {
+    font-family: 'VT323', monospace !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    backdrop-filter: none !important;
+}
+
+body.nokia-mode canvas {
+    background-color: #9ead86 !important;
+    border: 6px solid #3a3f2e !important;
+}
+
+body.nokia-mode #startGameScreen,
+body.nokia-mode #gameOverScreen,
+body.nokia-mode #pauseScreen {
+    background: #8ea377 !important;
+    color: #2b2f1f !important;
+}
+
+body.nokia-mode .menu-container {
+    background: #9ead86 !important;
+    border: 4px solid #2b2f1f !important;
+}
+
+body.nokia-mode h1,
+body.nokia-mode h2,
+body.nokia-mode p,
+body.nokia-mode .scoreboard h2,
+body.nokia-mode .score-name,
+body.nokia-mode .score-date,
+body.nokia-mode .score-value,
+body.nokia-mode .creator-info,
+body.nokia-mode #signedInAs {
+    color: #2b2f1f !important;
+}
+
+body.nokia-mode .logo-container {
+    display: none !important;
+}
+
+body.nokia-mode button {
+    background: #2b2f1f !important;
+    color: #9ead86 !important;
+    border: 2px solid #2b2f1f !important;
+    font-size: 18px !important;
+}
+
+body.nokia-mode button:hover {
+    background: #454b2e !important;
+}
+
+body.nokia-mode .scoreboard li,
+body.nokia-mode .top-player-banner,
+body.nokia-mode .scoreboard-tabs {
+    background: #8ea377 !important;
+    border: 2px solid #2b2f1f !important;
+}
+
+body.nokia-mode .tab-btn {
+    color: #2b2f1f !important;
+    background: transparent !important;
+}
+
+body.nokia-mode .tab-btn.active {
+    background: #2b2f1f !important;
+    color: #9ead86 !important;
+}
+
+body.nokia-mode .rank-badge,
+body.nokia-mode .banner-trophy {
+    display: none !important;
+}
+
+body.nokia-mode .banner-letter {
+    color: #2b2f1f !important;
+}
+
+body.nokia-mode #scoreCounter {
+    background: #2b2f1f !important;
+    color: #9ead86 !important;
+    font-family: 'VT323', monospace !important;
+    border-radius: 0 !important;
+}
+
+body.nokia-mode .links a {
+    color: #2b2f1f !important;
+}
+
+body.nokia-mode .creator-info {
+    opacity: 0.8;
 }

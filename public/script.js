@@ -42,6 +42,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let effectsMuted = loadMuteState('effectsMuted', false);
     updateMuteButtonStates();
 
+    // --- Nokia Mode: classic monochrome LCD Snake look ---
+    let nokiaMode = loadMuteState('nokiaMode', false);
+    const nokiaModeButton = document.getElementById('nokiaModeButton');
+    const nokiaModePauseButton = document.getElementById('nokiaModePauseButton');
+
+    function applyNokiaMode() {
+        document.body.classList.toggle('nokia-mode', nokiaMode);
+        const label = nokiaMode ? '\uD83D\uDCF1 Nokia Mode: On' : '\uD83D\uDCF1 Nokia Mode: Off';
+        if (nokiaModeButton) {
+            nokiaModeButton.textContent = label;
+            nokiaModeButton.classList.toggle('active', nokiaMode);
+        }
+        if (nokiaModePauseButton) {
+            nokiaModePauseButton.textContent = label;
+            nokiaModePauseButton.classList.toggle('active', nokiaMode);
+        }
+    }
+
+    function toggleNokiaMode() {
+        nokiaMode = !nokiaMode;
+        saveMuteState('nokiaMode', nokiaMode);
+        applyNokiaMode();
+    }
+
+    if (nokiaModeButton) nokiaModeButton.addEventListener('click', toggleNokiaMode);
+    if (nokiaModePauseButton) nokiaModePauseButton.addEventListener('click', toggleNokiaMode);
+    applyNokiaMode();
+
     function initializeGame() {
         gameOver = false; gamePaused = false; scoreSubmitted = false; inGame = true;
         snake = [{ x: 10, y: 10 }];
@@ -136,9 +164,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return 1; // fully open
     }
 
+    const NOKIA_PIXEL = '#2b2f1f';
+
     function draw(t) {
         const now = performance.now();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (nokiaMode) {
+            // Classic blocky monochrome LCD rendering - snake and food as solid squares,
+            // snapped to the grid (no smooth interpolation) for an authentic retro feel.
+            ctx.fillStyle = NOKIA_PIXEL;
+            const pad = Math.max(1, gridSize * 0.08);
+            for (let i = 0; i < snake.length; i++) {
+                const part = snake[i];
+                ctx.fillRect(part.x * gridSize + pad, part.y * gridSize + pad, gridSize - pad * 2, gridSize - pad * 2);
+            }
+            ctx.fillRect(food.x * gridSize + pad, food.y * gridSize + pad, gridSize - pad * 2, gridSize - pad * 2);
+            return;
+        }
+
         for (let i = 0; i < snake.length; i++) {
             const curr = snake[i];
             const prev = previousSnake[i] || curr;
