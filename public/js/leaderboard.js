@@ -1,13 +1,19 @@
 // Leaderboard rendering and data fetching: scoreboard lists, rank badges,
 // the animated top-player banner, and tab switching between All Time/Weekly.
+// Supports two independent leaderboards - "classic" (by score) and "levels"
+// (by highest level reached, then score) - each with their own cache/tabs.
 
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
 import { loadCachedHighScores, saveCachedHighScores } from './storage.js';
 
 state.cachedScoresByPeriod = {
-    alltime: loadCachedHighScores('alltime'),
-    weekly: loadCachedHighScores('weekly')
+    alltime: loadCachedHighScores('classic_alltime'),
+    weekly: loadCachedHighScores('classic_weekly')
+};
+state.cachedLevelsScoresByPeriod = {
+    alltime: loadCachedHighScores('levels_alltime'),
+    weekly: loadCachedHighScores('levels_weekly')
 };
 
 function formatScoreDate(isoLikeString) {
@@ -30,7 +36,7 @@ function createRankBadge(rank) {
     return badge;
 }
 
-function animateTopPlayerBanner(bannerEl, topEntry) {
+function animateTopPlayerBanner(bannerEl, topEntry, mode) {
     bannerEl.innerHTML = '';
     if (!topEntry) {
         bannerEl.style.display = 'none';
@@ -71,11 +77,11 @@ function animateTopPlayerBanner(bannerEl, topEntry) {
 
     const scoreSpan = document.createElement('span');
     scoreSpan.className = 'score-value';
-    scoreSpan.textContent = topEntry.score;
+    scoreSpan.textContent = mode === 'levels' ? `Lv.${topEntry.level} · ${topEntry.score}` : topEntry.score;
     bannerEl.appendChild(scoreSpan);
 }
 
-function renderHighScores(listElement, scores) {
+function renderHighScores(listElement, scores, mode) {
     listElement.innerHTML = '';
     if (!scores || scores.length === 0) {
         const li = document.createElement('li');
@@ -110,7 +116,7 @@ function renderHighScores(listElement, scores) {
 
         const scoreSpan = document.createElement('span');
         scoreSpan.className = 'score-value';
-        scoreSpan.textContent = entry.score;
+        scoreSpan.textContent = mode === 'levels' ? `Lv.${entry.level} · ${entry.score}` : entry.score;
 
         li.appendChild(infoWrap);
         li.appendChild(scoreSpan);
@@ -121,68 +127,111 @@ function renderHighScores(listElement, scores) {
 function bannerElFor(listElement) {
     if (listElement === dom.highScoreList) return document.getElementById('homeTopPlayerBanner');
     if (listElement === dom.gameOverHighScoreList) return document.getElementById('gameOverTopPlayerBanner');
+    if (listElement === dom.levelsHighScoreList) return document.getElementById('homeLevelsTopPlayerBanner');
+    if (listElement === dom.levelsGameOverHighScoreList) return document.getElementById('gameOverLevelsTopPlayerBanner');
     return null;
 }
 
-export function renderScoreboard(listElement, scores) {
-    renderHighScores(listElement, scores);
-    const banner = bannerElFor(listElement);
-    if (banner) animateTopPlayerBanner(banner, scores && scores[0]);
+function modeFor(listElement) {
+    if (listElement === dom.levelsHighScoreList || listElement === dom.levelsGameOverHighScoreList) return 'levels';
+    return 'classic';
 }
 
-export async function fetchHighScores(period) {
+export function renderScoreboard(listElement, scores, modeOverride) {
+    const mode = modeOverride || modeFor(listElement);
+    renderHighScores(listElement, scores, mode);
+    const banner = bannerElFor(listElement);
+    if (banner) animateTopPlayerBanner(banner, scores && scores[0], mode);
+}
+
+function cacheFor(mode) {
+    return mode === 'levels' ? state.cachedLevelsScoresByPeriod : state.cachedScoresByPeriod;
+}
+
+function activePeriodFor(mode) {
+    return mode === 'levels' ? state.activeLevelsPeriod : state.activePeriod;
+}
+
+function listElementsFor(mode) {
+    return mode === 'levels'
+        ? { home: dom.levelsHighScoreList, gameOver: dom.levelsGameOverHighScoreList, homeKey: 'levelsHighScoreList', gameOverKey: 'levelsGameOverHighScoreList' }
+        : { home: dom.highScoreList, gameOver: dom.gameOverHighScoreList, homeKey: 'highScoreList', gameOverKey: 'gameOverHighScoreList' };
+}
+
+export async function fetchHighScores(period, mode) {
+    mode = mode || 'classic';
+    const cache = cacheFor(mode);
     try {
-        const res = await fetch('/api/scores?period=' + encodeURIComponent(period));
+        const res = await fetch(`/api/scores?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}`);
         if (!res.ok) throw new Error('Bad response');
         const data = await res.json();
-        state.cachedScoresByPeriod[period] = data.scores || [];
-        saveCachedHighScores(period, state.cachedScoresByPeriod[period]);
+        cache[period] = data.scores || [];
+        saveCachedHighScores(`${mode}_${period}`, cache[period]);
     } catch (err) {
         // Fall back to whatever we have cached locally for this period
     }
-    if (state.activePeriod.highScoreList === period) {
-        renderScoreboard(dom.highScoreList, state.cachedScoresByPeriod[period]);
-    }
-    if (state.activePeriod.gameOverHighScoreList === period) {
-        renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod[period]);
-    }
+    const active = activePeriodFor(mode);
+    const els = listElementsFor(mode);
+    if (active[els.homeKey] === period) renderScoreboard(els.home, cache[period], mode);
+    if (active[els.gameOverKey] === period) renderScoreboard(els.gameOver, cache[period], mode);
 }
 
-export function refreshAfterSubmit(newScores) {
+export function refreshAfterSubmit(newScores, mode) {
+    mode = mode || 'classic';
+    const cache = cacheFor(mode);
     // A successful submission always changes the all-time leaderboard, and may also
     // affect the weekly one - refresh both from the server to stay accurate.
-    state.cachedScoresByPeriod.alltime = newScores || state.cachedScoresByPeriod.alltime;
-    saveCachedHighScores('alltime', state.cachedScoresByPeriod.alltime);
-    if (state.activePeriod.highScoreList === 'alltime') {
-        renderScoreboard(dom.highScoreList, state.cachedScoresByPeriod.alltime);
-    }
-    if (state.activePeriod.gameOverHighScoreList === 'alltime') {
-        renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod.alltime);
-    }
-    fetchHighScores('weekly');
+    cache.alltime = newScores || cache.alltime;
+    saveCachedHighScores(`${mode}_alltime`, cache.alltime);
+    const active = activePeriodFor(mode);
+    const els = listElementsFor(mode);
+    if (active[els.homeKey] === 'alltime') renderScoreboard(els.home, cache.alltime, mode);
+    if (active[els.gameOverKey] === 'alltime') renderScoreboard(els.gameOver, cache.alltime, mode);
+    fetchHighScores('weekly', mode);
 }
 
 export function initLeaderboardTabs() {
     document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
         const targetId = tabsEl.getAttribute('data-target');
+        const mode = tabsEl.getAttribute('data-mode') || 'classic';
         const listElement = document.getElementById(targetId);
         tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const period = btn.getAttribute('data-period');
                 tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                state.activePeriod[targetId] = period;
-                renderScoreboard(listElement, state.cachedScoresByPeriod[period]);
-                fetchHighScores(period);
+                activePeriodFor(mode)[targetId] = period;
+                renderScoreboard(listElement, cacheFor(mode)[period], mode);
+                fetchHighScores(period, mode);
+            });
+        });
+    });
+}
+
+// Toggle between the Classic/Levels mode panels (and their scoreboards) on the main menu.
+export function initModeTabs() {
+    if (!dom.scoreboardModeTabs) return;
+    dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-mode');
+            dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('[data-mode-panel]').forEach(panel => {
+                panel.style.display = panel.getAttribute('data-mode-panel') === mode ? 'block' : 'none';
             });
         });
     });
 }
 
 export function initLeaderboard() {
-    renderScoreboard(dom.highScoreList, state.cachedScoresByPeriod.alltime);
-    renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod.alltime);
+    renderScoreboard(dom.highScoreList, state.cachedScoresByPeriod.alltime, 'classic');
+    renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod.alltime, 'classic');
+    renderScoreboard(dom.levelsHighScoreList, state.cachedLevelsScoresByPeriod.alltime, 'levels');
+    renderScoreboard(dom.levelsGameOverHighScoreList, state.cachedLevelsScoresByPeriod.alltime, 'levels');
     initLeaderboardTabs();
-    fetchHighScores('alltime');
-    fetchHighScores('weekly');
+    initModeTabs();
+    fetchHighScores('alltime', 'classic');
+    fetchHighScores('weekly', 'classic');
+    fetchHighScores('alltime', 'levels');
+    fetchHighScores('weekly', 'levels');
 }

@@ -21,11 +21,17 @@ function showScoreSubmitError(message) {
 }
 
 async function submitScore(scoreValue) {
+    const mode = state.gameMode || 'classic';
     try {
         const res = await fetch('/api/scores', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken: state.googleIdToken, score: scoreValue })
+            body: JSON.stringify({
+                idToken: state.googleIdToken,
+                score: scoreValue,
+                mode,
+                level: mode === 'levels' ? state.level : undefined
+            })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -35,7 +41,7 @@ async function submitScore(scoreValue) {
             state.scoreSubmitted = false;
             return;
         }
-        refreshAfterSubmit(data.scores);
+        refreshAfterSubmit(data.scores, mode);
     } catch (err) {
         // Network failure: we deliberately do NOT fake a local entry here, since without
         // contacting the server we can't have a verified name.

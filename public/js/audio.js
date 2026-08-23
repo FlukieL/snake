@@ -78,6 +78,22 @@ export function playGameOverSound() {
     vibrateController([200, 100, 200]);
 }
 
+// Levels Mode: a short bright chime for collecting a power-up.
+export function playPowerupSound() {
+    if (state.effectsMuted) return;
+    playBeep(1046, 0.08, 'sine', 0.2);
+    setTimeout(() => playBeep(1568, 0.1, 'sine', 0.2), 70);
+    vibrateController(60);
+}
+
+// Levels Mode: an ascending fanfare for advancing to the next level.
+export function playLevelUpSound() {
+    if (state.effectsMuted) return;
+    const notes = [523, 659, 784, 1046];
+    notes.forEach((f, i) => setTimeout(() => playBeep(f, 0.14, 'triangle', 0.22), i * 90));
+    vibrateController(120);
+}
+
 export function vibrateController(duration) {
     const gamepads = navigator.getGamepads();
     if (gamepads[0] && gamepads[0].hapticActuators && gamepads[0].hapticActuators.length > 0) {

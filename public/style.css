@@ -743,3 +743,98 @@ body.nokia-mode .links a {
 body.nokia-mode .creator-info {
     opacity: 0.8;
 }
+
+/* ============================================================ */
+/* LEVELS MODE - mode selector, level badge, power-up styling     */
+/* ============================================================ */
+
+.mode-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.mode-tab-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    box-shadow: none;
+    padding: 10px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.mode-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+    transform: none;
+}
+
+.mode-tab-btn.active {
+    background: var(--accent);
+    color: #0a0a0a;
+    box-shadow: 0 2px 8px rgba(51, 209, 122, 0.3);
+}
+
+.mode-panel {
+    animation: menuFadeIn 0.3s ease-out;
+}
+
+.mode-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    margin: -0.4rem 0 1rem;
+    line-height: 1.4;
+}
+
+.levels-button {
+    background-color: #ba68c8;
+    box-shadow: 0 4px 14px rgba(186, 104, 200, 0.35);
+}
+
+.levels-button:hover {
+    background-color: #a855bb;
+}
+
+.final-level {
+    font-size: 1rem;
+    color: #ba68c8;
+    font-weight: 700;
+    margin: -4px 0 16px;
+}
+
+/* Level indicator badge shown during Levels Mode gameplay.
+   Positioned top-left so it doesn't collide with the pause button (top-right)
+   or the score counter (top-center). */
+#levelBadge {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-color);
+    background: rgba(186, 104, 200, 0.85);
+    padding: 6px 16px;
+    border-radius: 10px;
+    z-index: 10;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 12px rgba(186, 104, 200, 0.4);
+}
+
+@media (max-width: 768px) {
+    #levelBadge {
+        top: 14px;
+        left: 14px;
+        font-size: 14px;
+        padding: 5px 12px;
+    }
+}

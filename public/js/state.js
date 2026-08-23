@@ -20,6 +20,25 @@ export const constants = {
     },
     DIGESTION_WAVE_SPEED: 26, // segments per second the color wave travels through the body
     DIGESTION_WAVE_WIDTH: 1.6, // width of the glow band, in segments
+
+    // --- Levels Mode ---
+    FRUITS_PER_LEVEL: 5, // fruits needed to eat before advancing to the next level
+    LEVEL_BASE_TICK_RATE: 12,
+    LEVEL_TICK_RATE_STEP: 0.6, // speed increase per level
+    LEVEL_MAX_TICK_RATE: 22,
+    OBSTACLES_START_LEVEL: 3, // obstacles begin appearing from this level onward
+    OBSTACLES_PER_LEVEL: 2, // additional obstacle blocks added per level past the start
+    MAX_OBSTACLES: 24,
+    OBSTACLE_COLOR: '#5b4636',
+
+    POWERUP_SPAWN_INTERVAL: 14000, // ms between power-up spawn attempts
+    POWERUP_LIFETIME: 8000, // ms a spawned power-up stays on the board before vanishing
+    POWERUP_TYPES: {
+        multiplier: { color: '#ffd54f', symbol: '2x', duration: 10000, label: 'Score x2' },
+        invincible: { color: '#4fc3f7', symbol: '\u2605', duration: 6000, label: 'Invincible' },
+        shrink: { color: '#ba68c8', symbol: '-3', duration: 0, label: 'Shrink' }
+    },
+
     NOKIA_PIXEL: '#3a3f2e',
     BANNER_LETTER_COLORS: ['#33d17a', '#4dd0e1', '#ffd54f', '#ff8a65', '#ba68c8', '#4fc3f7'],
     RANK_MEDALS: { 2: 'silver', 3: 'bronze' },
@@ -64,5 +83,23 @@ export const state = {
     // Active "digestion wave" animations - each is { color, startTime }. A wave's
     // travel position through the snake's body is computed purely from elapsed
     // time, so it stays smooth regardless of the game tick rate.
-    digestionWaves: []
+    digestionWaves: [],
+
+    // --- Levels Mode state ---
+    gameMode: 'classic', // 'classic' | 'levels'
+    level: 1,
+    fruitsEatenThisLevel: 0,
+    tickInterval: 1000 / 12,
+    obstacles: [], // array of { x, y }
+
+    // Active power-ups: spawned pickup on the board, and currently-applied effects.
+    activePowerup: null, // { type, x, y, spawnTime }
+    lastPowerupSpawnAttempt: 0,
+    effects: {
+        multiplierUntil: 0,
+        invincibleUntil: 0
+    },
+
+    cachedLevelsScoresByPeriod: { alltime: [], weekly: [] },
+    activeLevelsPeriod: { levelsHighScoreList: 'alltime', levelsGameOverHighScoreList: 'alltime' }
 };

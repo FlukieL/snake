@@ -383,6 +383,84 @@ function drawSegmentOverlay(ctx, x, y, gridSize, overlay) {
     ctx.restore();
 }
 
+function drawObstacles(ctx) {
+    if (state.gameMode !== 'levels' || !state.obstacles.length) return;
+    const gridSize = state.gridSize;
+    const pad = Math.max(1, gridSize * 0.06);
+    ctx.save();
+    ctx.fillStyle = constants.OBSTACLE_COLOR;
+    for (const o of state.obstacles) {
+        const x = o.x * gridSize + pad, y = o.y * gridSize + pad;
+        const size = gridSize - pad * 2;
+        drawRoundedRect(ctx, x, y, size, size, gridSize * 0.12);
+        // Subtle crack/texture lines for a rock-like appearance.
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = Math.max(1, gridSize * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(x + size * 0.25, y + size * 0.2);
+        ctx.lineTo(x + size * 0.55, y + size * 0.55);
+        ctx.moveTo(x + size * 0.7, y + size * 0.25);
+        ctx.lineTo(x + size * 0.5, y + size * 0.6);
+        ctx.stroke();
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+function drawPowerup(ctx, now) {
+    if (state.gameMode !== 'levels' || !state.activePowerup) return;
+    const gridSize = state.gridSize;
+    const def = constants.POWERUP_TYPES[state.activePowerup.type];
+    if (!def) return;
+
+    const cx = (state.activePowerup.x + 0.5) * gridSize;
+    const cy = (state.activePowerup.y + 0.5) * gridSize;
+    const pulse = 1 + Math.sin(now / 180) * 0.08;
+    const r = gridSize * 0.38 * pulse;
+
+    ctx.save();
+    ctx.shadowColor = def.color;
+    ctx.shadowBlur = gridSize * 0.5;
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0a0a0a';
+    ctx.font = `bold ${Math.round(gridSize * 0.42)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.symbol, cx, cy + 1);
+    ctx.restore();
+}
+
+// While invincible in Levels Mode, draw a pulsing golden outline around the
+// snake's head so the player has clear visual feedback the effect is active.
+function drawInvincibilityGlow(ctx, headPos, now) {
+    if (state.gameMode !== 'levels') return;
+    if (now >= state.effects.invincibleUntil) return;
+    const gridSize = state.gridSize;
+    const x = headPos.x * gridSize, y = headPos.y * gridSize;
+    const pulse = 0.5 + Math.sin(now / 100) * 0.5;
+    ctx.save();
+    ctx.strokeStyle = `rgba(79, 195, 247, ${0.5 + pulse * 0.5})`;
+    ctx.lineWidth = Math.max(2, gridSize * 0.12);
+    drawRoundedRectStroke(ctx, x - 2, y - 2, gridSize + 4, gridSize + 4, gridSize / 4);
+    ctx.restore();
+}
+
+function drawRoundedRectStroke(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, radius);
+    ctx.arcTo(x + width, y + height, x, y + height, radius);
+    ctx.arcTo(x, y + height, x, y, radius);
+    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.closePath();
+    ctx.stroke();
+}
+
 export function draw(t) {
     const ctx = dom.ctx;
     const now = performance.now();
@@ -393,7 +471,10 @@ export function draw(t) {
         return;
     }
 
+    drawObstacles(ctx);
+
     const activeWaves = updateAndGetActiveWaves(state.snake.length - 1, now);
+    let headPos = null;
 
     for (let i = 0; i < state.snake.length; i++) {
         const curr = state.snake[i];
@@ -406,7 +487,12 @@ export function draw(t) {
             const overlay = getSegmentOverlay(activeWaves, i);
             drawSegmentOverlay(ctx, x, y, state.gridSize, overlay);
         }
-        if (i === 0) drawHeadDetails(ctx, pos, now);
+        if (i === 0) {
+            headPos = pos;
+            drawHeadDetails(ctx, pos, now);
+        }
     }
+    if (headPos) drawInvincibilityGlow(ctx, headPos, now);
     drawFruit(ctx, now);
+    drawPowerup(ctx, now);
 }

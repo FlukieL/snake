@@ -26,10 +26,14 @@ function initMenuButtons() {
     dom.restartButton.addEventListener('click', () => {
         dom.gameOverScreen.style.display = 'none';
         submitCurrentScoreIfNeeded();
-        initializeGame();
+        initializeGame(state.gameMode);
     });
 
-    dom.startButton.addEventListener('click', startGameSession);
+    dom.startButton.addEventListener('click', () => startGameSession('classic'));
+
+    if (dom.startLevelsButton) {
+        dom.startLevelsButton.addEventListener('click', () => startGameSession('levels'));
+    }
 
     dom.pauseButton.addEventListener('click', togglePause);
 

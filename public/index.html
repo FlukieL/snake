@@ -32,16 +32,39 @@
         </div>
         <div class="menu-container">
             <pre id="nokiaAsciiLogo" class="nokia-ascii-logo"></pre>
-            <button id="startButton" class="menu-button">Play Game</button>
-            <div class="scoreboard">
-                <h2>High Scores</h2>
-                <div class="scoreboard-tabs" data-target="highScoreList">
-                    <button class="tab-btn active" data-period="alltime">All Time</button>
-                    <button class="tab-btn" data-period="weekly">This Week</button>
-                </div>
-                <div class="top-player-banner" id="homeTopPlayerBanner"></div>
-                <ol id="highScoreList"><li class="loading">Loading&hellip;</li></ol>
+
+            <div class="mode-tabs" id="scoreboardModeTabs">
+                <button class="mode-tab-btn active" data-mode="classic">Classic</button>
+                <button class="mode-tab-btn" data-mode="levels">Levels</button>
             </div>
+
+            <div class="mode-panel" data-mode-panel="classic">
+                <button id="startButton" class="menu-button">Play Classic</button>
+                <div class="scoreboard">
+                    <h2>High Scores</h2>
+                    <div class="scoreboard-tabs" data-target="highScoreList" data-mode="classic">
+                        <button class="tab-btn active" data-period="alltime">All Time</button>
+                        <button class="tab-btn" data-period="weekly">This Week</button>
+                    </div>
+                    <div class="top-player-banner" id="homeTopPlayerBanner"></div>
+                    <ol id="highScoreList"><li class="loading">Loading&hellip;</li></ol>
+                </div>
+            </div>
+
+            <div class="mode-panel" data-mode-panel="levels" style="display:none;">
+                <button id="startLevelsButton" class="menu-button levels-button">Play Levels</button>
+                <p class="mode-description">Eat 5 fruits to advance. Obstacles and speed increase each level. Watch for power-ups!</p>
+                <div class="scoreboard">
+                    <h2>Levels High Scores</h2>
+                    <div class="scoreboard-tabs" data-target="levelsHighScoreList" data-mode="levels">
+                        <button class="tab-btn active" data-period="alltime">All Time</button>
+                        <button class="tab-btn" data-period="weekly">This Week</button>
+                    </div>
+                    <div class="top-player-banner" id="homeLevelsTopPlayerBanner"></div>
+                    <ol id="levelsHighScoreList"><li class="loading">Loading&hellip;</li></ol>
+                </div>
+            </div>
+
             <div class="button-group">
                 <button id="muteMusicButton" class="mute-button">Mute Music</button>
                 <button id="muteEffectsButton" class="mute-button">Mute Effects</button>
@@ -56,20 +79,33 @@
     </div>
 
     <div id="scoreCounter">0</div>
+    <div id="levelBadge" style="display:none;">Level 1</div>
     <canvas id="gameCanvas"></canvas>
 
     <div id="gameOverScreen">
         <div class="menu-container">
             <h2>Game Over</h2>
             <p>Score: <span id="finalScore"></span></p>
-            <div class="scoreboard">
-                <div class="scoreboard-tabs" data-target="gameOverHighScoreList">
+            <p id="finalLevel" class="final-level" style="display:none;">Reached Level <span id="finalLevelValue"></span></p>
+
+            <div class="scoreboard" data-scoreboard="classic">
+                <div class="scoreboard-tabs" data-target="gameOverHighScoreList" data-mode="classic">
                     <button class="tab-btn active" data-period="alltime">All Time</button>
                     <button class="tab-btn" data-period="weekly">This Week</button>
                 </div>
                 <div class="top-player-banner" id="gameOverTopPlayerBanner"></div>
                 <ol id="gameOverHighScoreList"></ol>
             </div>
+
+            <div class="scoreboard" data-scoreboard="levels" style="display:none;">
+                <div class="scoreboard-tabs" data-target="levelsGameOverHighScoreList" data-mode="levels">
+                    <button class="tab-btn active" data-period="alltime">All Time</button>
+                    <button class="tab-btn" data-period="weekly">This Week</button>
+                </div>
+                <div class="top-player-banner" id="gameOverLevelsTopPlayerBanner"></div>
+                <ol id="levelsGameOverHighScoreList"></ol>
+            </div>
+
             <div id="googleSignInContainer"></div>
             <div id="signedInAs" style="display:none;"></div>
             <button id="submitScoreButton" disabled>Sign in with Google to submit</button>

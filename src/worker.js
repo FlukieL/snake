@@ -107,10 +107,20 @@ function sanitizeName(rawName) {
     return name;
 }
 
-async function getTopScores(db, period) {
+const VALID_MODES = ['classic', 'levels'];
+
+async function getTopScores(db, period, mode) {
+    if (mode === 'levels') {
+        // Levels mode ranks by highest level reached first, then score as tiebreaker.
+        const query = period === 'weekly'
+            ? "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY level DESC, score DESC, created_at ASC LIMIT ?1"
+            : "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' ORDER BY level DESC, score DESC, created_at ASC LIMIT ?1";
+        const { results } = await db.prepare(query).bind(TOP_N).all();
+        return results || [];
+    }
     const query = period === 'weekly'
-        ? "SELECT name, score, created_at FROM scores WHERE created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1"
-        : 'SELECT name, score, created_at FROM scores ORDER BY score DESC, created_at ASC LIMIT ?1';
+        ? "SELECT name, score, created_at FROM scores WHERE mode = 'classic' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1"
+        : "SELECT name, score, created_at FROM scores WHERE mode = 'classic' ORDER BY score DESC, created_at ASC LIMIT ?1";
     const { results } = await db.prepare(query).bind(TOP_N).all();
     return results || [];
 }
@@ -119,8 +129,10 @@ async function handleGetScores(request, env) {
     try {
         const url = new URL(request.url);
         const period = url.searchParams.get('period') === 'weekly' ? 'weekly' : 'alltime';
-        const scores = await getTopScores(env.DB, period);
-        return jsonResponse({ scores, period });
+        const modeParam = url.searchParams.get('mode');
+        const mode = VALID_MODES.includes(modeParam) ? modeParam : 'classic';
+        const scores = await getTopScores(env.DB, period, mode);
+        return jsonResponse({ scores, period, mode });
     } catch (err) {
         return jsonResponse({ error: 'Failed to load scores' }, 500);
     }
@@ -138,6 +150,13 @@ async function handlePostScore(request, env) {
     if (!Number.isFinite(score) || score < 0 || score > MAX_SCORE || !Number.isInteger(score)) {
         return jsonResponse({ error: 'Invalid score' }, 400);
     }
+
+    const mode = VALID_MODES.includes(body && body.mode) ? body.mode : 'classic';
+
+    const rawLevel = Number(body && body.level);
+    const level = mode === 'levels' && Number.isFinite(rawLevel) && rawLevel >= 0 && Number.isInteger(rawLevel)
+        ? rawLevel
+        : 0;
 
     // Require a verified Google Sign-In ID token; the player's name is taken from the
     // verified token payload, not from client-supplied text, to prevent impersonation/fake names.
@@ -160,12 +179,12 @@ async function handlePostScore(request, env) {
 
     try {
         await env.DB
-            .prepare('INSERT INTO scores (name, score) VALUES (?1, ?2)')
-            .bind(name, score)
+            .prepare('INSERT INTO scores (name, score, mode, level) VALUES (?1, ?2, ?3, ?4)')
+            .bind(name, score, mode, level)
             .run();
 
-        const scores = await getTopScores(env.DB, 'alltime');
-        return jsonResponse({ scores }, 201);
+        const scores = await getTopScores(env.DB, 'alltime', mode);
+        return jsonResponse({ scores, mode }, 201);
     } catch (err) {
         return jsonResponse({ error: 'Failed to save score' }, 500);
     }
