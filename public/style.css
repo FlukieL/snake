@@ -93,6 +93,18 @@ button:active {
     transform: translateY(0);
 }
 
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+button:disabled:hover {
+    background-color: var(--accent);
+    transform: none;
+}
+
 /* Logo */
 .logo-container {
     width: 170px;
@@ -130,6 +142,18 @@ button:active {
 
 #highScoreInput:focus {
     border-color: var(--accent);
+}
+
+#googleSignInContainer {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+#signedInAs {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
 }
 
 #highScoreInput.input-error {

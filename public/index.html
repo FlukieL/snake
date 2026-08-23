@@ -12,6 +12,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#0f0f0f">
     <link rel="stylesheet" href="/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Open Graph meta tags -->
     <meta property="og:title" content="Snake Game">
@@ -53,8 +54,9 @@
         <div class="scoreboard">
             <ol id="gameOverHighScoreList"></ol>
         </div>
-        <input type="text" id="highScoreInput" placeholder="Enter your name" maxlength="16" autocomplete="off">
-        <button id="submitScoreButton">Submit Score</button>
+        <div id="googleSignInContainer"></div>
+        <div id="signedInAs" style="display:none;"></div>
+        <button id="submitScoreButton" disabled>Sign in with Google to submit</button>
         <button id="restartButton">Play Again</button>
         <button id="mainMenuButton">Main Menu</button>
         <button id="muteMusicGameOverButton" class="mute-button">Mute Music</button>

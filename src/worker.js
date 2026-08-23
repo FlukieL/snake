@@ -11,6 +11,77 @@
 const MAX_NAME_LENGTH = 16;
 const MAX_SCORE = 100000; // sanity cap to reject bogus submissions
 const TOP_N = 10;
+const GOOGLE_CLIENT_ID = '600684655874-jfqakqf9snp67eikljkfsl3qmbtopin5.apps.googleusercontent.com';
+const GOOGLE_CERTS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+
+function base64UrlToUint8Array(base64Url) {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '==='.slice((base64.length + 3) % 4);
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+}
+
+function base64UrlDecodeJSON(base64Url) {
+    const bytes = base64UrlToUint8Array(base64Url);
+    const text = new TextDecoder().decode(bytes);
+    return JSON.parse(text);
+}
+
+let cachedCerts = null;
+let cachedCertsExpiry = 0;
+
+async function getGoogleCerts() {
+    const now = Date.now();
+    if (cachedCerts && now < cachedCertsExpiry) return cachedCerts;
+    const res = await fetch(GOOGLE_CERTS_URL);
+    if (!res.ok) throw new Error('Failed to fetch Google certs');
+    const data = await res.json();
+    cachedCerts = data.keys;
+    cachedCertsExpiry = now + 60 * 60 * 1000; // cache for 1 hour
+    return cachedCerts;
+}
+
+// Verifies a Google Sign-In ID token: checks RS256 signature against Google's public keys,
+// and validates issuer, audience, and expiry. Returns the decoded payload on success.
+async function verifyGoogleIdToken(idToken) {
+    if (!idToken || typeof idToken !== 'string' || idToken.split('.').length !== 3) {
+        throw new Error('Malformed token');
+    }
+    const [headerB64, payloadB64, signatureB64] = idToken.split('.');
+    const header = base64UrlDecodeJSON(headerB64);
+    const payload = base64UrlDecodeJSON(payloadB64);
+
+    if (header.alg !== 'RS256') throw new Error('Unsupported algorithm');
+
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof payload.exp !== 'number' || payload.exp < now) throw new Error('Token expired');
+    if (payload.aud !== GOOGLE_CLIENT_ID) throw new Error('Invalid audience');
+    if (payload.iss !== 'https://accounts.google.com' && payload.iss !== 'accounts.google.com') {
+        throw new Error('Invalid issuer');
+    }
+
+    const certs = await getGoogleCerts();
+    const jwk = certs.find(k => k.kid === header.kid);
+    if (!jwk) throw new Error('Unknown signing key');
+
+    const key = await crypto.subtle.importKey(
+        'jwk',
+        jwk,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        false,
+        ['verify']
+    );
+
+    const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+    const signature = base64UrlToUint8Array(signatureB64);
+
+    const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, data);
+    if (!valid) throw new Error('Invalid signature');
+
+    return payload;
+}
 
 // Extensive profanity/slur blocklist (lowercase, no separators).
 // Matching is done against a normalized version of the submitted name that:
@@ -98,7 +169,21 @@ async function handlePostScore(request, env) {
         return jsonResponse({ error: 'Invalid score' }, 400);
     }
 
-    const name = sanitizeName(body && body.name);
+    // Require a verified Google Sign-In ID token; the player's name is taken from the
+    // verified token payload, not from client-supplied text, to prevent impersonation/fake names.
+    const idToken = body && body.idToken;
+    if (!idToken) {
+        return jsonResponse({ error: 'Google sign-in required' }, 401);
+    }
+
+    let googlePayload;
+    try {
+        googlePayload = await verifyGoogleIdToken(idToken);
+    } catch (err) {
+        return jsonResponse({ error: 'Invalid Google sign-in token' }, 401);
+    }
+
+    const name = sanitizeName(googlePayload.name || googlePayload.given_name);
     if (!name) {
         return jsonResponse({ error: 'Name is required' }, 400);
     }

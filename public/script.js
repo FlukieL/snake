@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('startButton');
     const highScoreList = document.getElementById('highScoreList');
     const gameOverHighScoreList = document.getElementById('gameOverHighScoreList');
-    const highScoreInput = document.getElementById('highScoreInput');
     const submitScoreButton = document.getElementById('submitScoreButton');
+    const googleSignInContainer = document.getElementById('googleSignInContainer');
+    const signedInAsEl = document.getElementById('signedInAs');
     const scoreCounter = document.getElementById('scoreCounter');
     const eatingSound = new Audio('/EatingSound.mp3');
     const gameOverSound = new Audio('/GameOverSound.mp3');
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameMusic.pause();
         finalScore.innerText = score;
         gameOverScreen.style.display = 'flex';
-        highScoreInput.value = '';
+        resetSubmitUI();
         renderHighScores(gameOverHighScoreList, cachedTopScores);
         fetchHighScores();
     }
@@ -475,62 +476,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function submitScore(name, scoreValue) {
+    // --- Google Sign-In (verified name for leaderboard submissions) ---
+    let googleIdToken = null;
+    let googleDisplayName = null;
+
+    function resetSubmitUI() {
+        scoreSubmitted = false;
+        submitScoreButton.disabled = !googleIdToken;
+        submitScoreButton.textContent = googleIdToken ? 'Submit Score' : 'Sign in with Google to submit';
+    }
+
+    function handleGoogleCredential(response) {
+        googleIdToken = response.credential;
+        try {
+            const payloadB64 = response.credential.split('.')[1];
+            const json = JSON.parse(decodeURIComponent(escape(window.atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')))));
+            googleDisplayName = json.name || json.given_name || 'Player';
+        } catch (e) {
+            googleDisplayName = 'Player';
+        }
+        signedInAsEl.textContent = `Signed in as ${googleDisplayName}`;
+        signedInAsEl.style.display = 'block';
+        googleSignInContainer.style.display = 'none';
+        submitScoreButton.disabled = false;
+        submitScoreButton.textContent = 'Submit Score';
+    }
+
+    function initGoogleSignIn() {
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+            // Google script may not have loaded yet - retry shortly.
+            setTimeout(initGoogleSignIn, 300);
+            return;
+        }
+        window.google.accounts.id.initialize({
+            client_id: '600684655874-jfqakqf9snp67eikljkfsl3qmbtopin5.apps.googleusercontent.com',
+            callback: handleGoogleCredential,
+            auto_select: false
+        });
+        window.google.accounts.id.renderButton(googleSignInContainer, {
+            theme: 'filled_black',
+            size: 'large',
+            shape: 'pill',
+            text: 'signin_with'
+        });
+    }
+    initGoogleSignIn();
+
+    async function submitScore(scoreValue) {
         try {
             const res = await fetch('/api/scores', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score: scoreValue })
+                body: JSON.stringify({ idToken: googleIdToken, score: scoreValue })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                // Server rejected (e.g. blank name or profanity) - surface it and don't fall back locally,
-                // so a rejected/invalid name never appears in the leaderboard.
+                // Server rejected (e.g. invalid/expired token or profanity) - surface it and don't fall
+                // back locally, so a rejected/invalid submission never appears in the leaderboard.
                 showScoreSubmitError(data.error || 'Could not submit score');
                 scoreSubmitted = false;
                 return;
             }
             cachedTopScores = data.scores || cachedTopScores;
             saveCachedHighScores(cachedTopScores);
+            renderHighScores(highScoreList, cachedTopScores);
+            renderHighScores(gameOverHighScoreList, cachedTopScores);
         } catch (err) {
-            // Network/offline fallback: keep a local top-5 as a backup
-            cachedTopScores.push({ name, score: scoreValue });
-            cachedTopScores.sort((a, b) => b.score - a.score);
-            cachedTopScores = cachedTopScores.slice(0, 5);
-            saveCachedHighScores(cachedTopScores);
+            // Network failure: we deliberately do NOT fake a local entry here, since without
+            // contacting the server we can't have a verified name - the score submission is lost
+            // for the leaderboard (though the player's actual game score display is unaffected).
+            showScoreSubmitError('Network error - could not submit score');
+            scoreSubmitted = false;
         }
-        renderHighScores(highScoreList, cachedTopScores);
-        renderHighScores(gameOverHighScoreList, cachedTopScores);
     }
 
     function showScoreSubmitError(message) {
-        highScoreInput.classList.add('input-error');
-        highScoreInput.placeholder = message;
         submitScoreButton.disabled = false;
-        submitScoreButton.textContent = 'Submit Score';
+        submitScoreButton.textContent = message;
         setTimeout(() => {
-            highScoreInput.classList.remove('input-error');
-            highScoreInput.placeholder = 'Enter your name';
+            submitScoreButton.textContent = googleIdToken ? 'Submit Score' : 'Sign in with Google to submit';
         }, 3000);
     }
 
     function submitCurrentScoreIfNeeded() {
         if (scoreSubmitted || score <= 0) return;
-        const playerName = highScoreInput.value.trim().slice(0, 16);
-        if (!playerName) {
-            showScoreSubmitError('Please enter a name');
-            return;
-        }
+        if (!googleIdToken) return; // can't submit without a verified identity
         scoreSubmitted = true;
-        submitScore(playerName, score);
+        submitScore(score);
     }
 
     submitScoreButton.addEventListener('click', () => {
-        const playerName = highScoreInput.value.trim();
-        if (!playerName) {
-            showScoreSubmitError('Please enter a name');
-            return;
-        }
+        if (!googleIdToken) return;
         submitCurrentScoreIfNeeded();
         submitScoreButton.disabled = true;
         submitScoreButton.textContent = 'Submitted';
