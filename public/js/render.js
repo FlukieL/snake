@@ -161,13 +161,16 @@ function drawHeadDetails(ctx, part, now) {
     if (state.direction === 'left' || state.direction === 'right') {
         const halfH = (eyeHeight / 2) * openness;
         // Pupil vertical offset toward the bottom of the eye (less goofy/cross-eyed look).
-        const pupilShift = (eyeWidth / 2) * 0.4;
+        const pupilShift = halfH * 0.4;
         if (halfH > 0.3) {
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
+            // Horizontal radius stays fixed (eyeWidth/2); vertical radius (halfH)
+            // is the one affected by blinking, so the eye closes top-to-bottom
+            // rather than squashing sideways (which caused a horizontal "flicker").
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 - pupilShift, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 - pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
         } else {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = Math.max(1, gridSize / 18);

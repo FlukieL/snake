@@ -753,6 +753,18 @@ body.nokia-mode .tab-slider {
     background: #2b2f1f !important;
 }
 
+/* Nokia Mode is Classic-only, so the Classic/Levels mode selector tabs (and
+   the Levels panel) are hidden entirely - the menu just shows a single
+   "Play" button, matching the simplicity of the original Nokia handset. */
+body.nokia-mode #scoreboardModeTabs,
+body.nokia-mode [data-mode-panel="levels"] {
+    display: none !important;
+}
+
+body.nokia-mode [data-mode-panel="classic"] {
+    display: block !important;
+}
+
 body.nokia-mode .rank-badge,
 body.nokia-mode .banner-trophy {
     display: none !important;

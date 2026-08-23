@@ -37,4 +37,10 @@ export function updateNokiaModeUI() {
     if (dom.nokiaAsciiLogo) {
         dom.nokiaAsciiLogo.textContent = state.nokiaMode ? constants.NOKIA_ASCII_LOGO : '';
     }
+    // Nokia Mode is Classic-only and hides the Classic/Levels mode picker
+    // entirely, so simplify the play button to just say "Play" rather than
+    // "Play Classic" (which implies a choice that no longer exists here).
+    if (dom.startButton) {
+        dom.startButton.textContent = state.nokiaMode ? 'Play' : 'Play Classic';
+    }
 }
