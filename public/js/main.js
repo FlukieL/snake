@@ -3,6 +3,7 @@
 // score-animation cleanup), and kicks off leaderboard loading.
 
 import { dom } from './dom.js';
+import { state } from './state.js';
 import { initAudioControls } from './audio.js';
 import { initNokiaMode } from './nokiaMode.js';
 import { initLeaderboard } from './leaderboard.js';
@@ -79,12 +80,33 @@ function initServiceWorker() {
 
         // Once the new service worker takes control, reload so the page picks
         // up the freshly cached assets rather than running stale JS/CSS.
+        // However, reloading mid-game would abruptly kick the player out of
+        // an active session, which is jarring. Instead, only reload
+        // immediately if the player is on the main menu right now; otherwise
+        // wait until they return to the main menu (main-menu button, game
+        // over, etc.) before reloading.
         let hasReloaded = false;
+        let updateReady = false;
+
+        function reloadIfSafe() {
+            if (hasReloaded || !updateReady) return;
+            const onMainMenu = getComputedStyle(dom.startGameScreen).display !== 'none';
+            if (onMainMenu && !state.inGame) {
+                hasReloaded = true;
+                window.location.reload();
+            }
+        }
+
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (hasReloaded) return;
-            hasReloaded = true;
-            window.location.reload();
+            updateReady = true;
+            reloadIfSafe();
         });
+
+        // Re-check whenever the player might have returned to the main menu.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reloadIfSafe();
+        });
+        setInterval(reloadIfSafe, 2000);
     });
 }
 
