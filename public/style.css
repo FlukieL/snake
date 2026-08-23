@@ -216,39 +216,84 @@ button:disabled:hover {
 
 .top-player-banner {
     display: none;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1px;
-    padding: 8px 6px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
     margin-bottom: 10px;
     background: linear-gradient(135deg, rgba(255, 213, 79, 0.12), rgba(51, 209, 122, 0.12));
-    border: 1px solid rgba(255, 213, 79, 0.25);
-    border-radius: 10px;
+    border: 1px solid rgba(255, 213, 79, 0.3);
+    border-radius: 8px;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
     overflow: hidden;
 }
 
-.banner-letter {
-    display: inline-block;
-    opacity: 0;
-    transform: translateY(10px) scale(0.7);
-    animation: letterPop 0.4s ease-out forwards;
+.banner-trophy {
+    flex: 0 0 auto;
+    font-size: 18px;
+    line-height: 1;
 }
 
-@keyframes letterPop {
-    0% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.7);
+.banner-info {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.banner-name {
+    display: inline-flex;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Continuous, subtle character-by-character color pulse for the top player's name */
+.banner-letter {
+    display: inline-block;
+    animation: letterGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes letterGlow {
+    0%, 100% {
+        opacity: 0.55;
+        transform: translateY(0);
     }
-    60% {
+    50% {
         opacity: 1;
-        transform: translateY(-3px) scale(1.15);
+        transform: translateY(-1.5px);
     }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+}
+
+/* Rank Badges (Top 3) */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 6px;
+    flex: 0 0 auto;
+    color: #1a1a1a;
+}
+
+.rank-gold {
+    background: linear-gradient(135deg, #ffe27a, #ffb300);
+    box-shadow: 0 0 6px rgba(255, 179, 0, 0.6);
+}
+
+.rank-silver {
+    background: linear-gradient(135deg, #e8e8e8, #b0b0b8);
+    box-shadow: 0 0 6px rgba(180, 180, 190, 0.5);
+}
+
+.rank-bronze {
+    background: linear-gradient(135deg, #d99a5b, #a86a35);
+    box-shadow: 0 0 6px rgba(168, 106, 53, 0.5);
 }
 
 .scoreboard h2 {

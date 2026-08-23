@@ -432,15 +432,55 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         bannerEl.style.display = 'flex';
-        const text = `\uD83C\uDFC6 ${topEntry.name} \u2014 ${topEntry.score}`;
-        text.split('').forEach((ch, i) => {
+
+        // Trophy icon rendered separately (not colorized) so the emoji glyph displays correctly.
+        const trophy = document.createElement('span');
+        trophy.className = 'banner-trophy';
+        trophy.textContent = '\uD83C\uDFC6';
+        bannerEl.appendChild(trophy);
+
+        const infoWrap = document.createElement('span');
+        infoWrap.className = 'score-info banner-info';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'score-name banner-name';
+
+        // Animate the player's name character-by-character with a continuous, subtle color wave.
+        topEntry.name.split('').forEach((ch, i) => {
             const span = document.createElement('span');
             span.textContent = ch === ' ' ? '\u00A0' : ch;
             span.className = 'banner-letter';
             span.style.color = BANNER_LETTER_COLORS[i % BANNER_LETTER_COLORS.length];
-            span.style.animationDelay = `${i * 0.045}s`;
-            bannerEl.appendChild(span);
+            span.style.animationDelay = `${i * 0.12}s`;
+            nameSpan.appendChild(span);
         });
+        infoWrap.appendChild(nameSpan);
+
+        const dateText = formatScoreDate(topEntry.created_at);
+        if (dateText) {
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'score-date';
+            dateSpan.textContent = dateText;
+            infoWrap.appendChild(dateSpan);
+        }
+
+        bannerEl.appendChild(infoWrap);
+
+        const scoreSpan = document.createElement('span');
+        scoreSpan.className = 'score-value';
+        scoreSpan.textContent = topEntry.score;
+        bannerEl.appendChild(scoreSpan);
+    }
+
+    const RANK_MEDALS = ['gold', 'silver', 'bronze'];
+
+    function createRankBadge(index) {
+        const medal = RANK_MEDALS[index];
+        if (!medal) return null;
+        const badge = document.createElement('span');
+        badge.className = 'rank-badge rank-' + medal;
+        badge.textContent = index + 1;
+        return badge;
     }
 
     function renderHighScores(listElement, scores) {
@@ -452,11 +492,14 @@ document.addEventListener('DOMContentLoaded', () => {
             listElement.appendChild(li);
             return;
         }
-        scores.slice(0, 5).forEach(entry => {
+        scores.slice(0, 5).forEach((entry, index) => {
             const li = document.createElement('li');
 
             const infoWrap = document.createElement('span');
             infoWrap.className = 'score-info';
+
+            const badge = createRankBadge(index);
+            if (badge) infoWrap.appendChild(badge);
 
             const nameSpan = document.createElement('span');
             nameSpan.className = 'score-name';
