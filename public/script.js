@@ -216,22 +216,99 @@ document.addEventListener('DOMContentLoaded', () => {
         return 1; // fully open
     }
 
-    const NOKIA_PIXEL = '#2b2f1f';
+    const NOKIA_PIXEL = '#3a3f2e';
+
+    function drawNokiaScene() {
+        // Authentic Nokia 3310-style rendering: continuous connected snake body (segments
+        // joined into the next one, filling the gap at corners), a small plus/cross for the
+        // food, an inset double-border frame, and a faint pixel grid overlay for LCD texture.
+        const pad = Math.max(1, gridSize * 0.12);
+        const half = gridSize / 2;
+
+        ctx.fillStyle = NOKIA_PIXEL;
+        ctx.strokeStyle = NOKIA_PIXEL;
+
+        // Draw each segment as a rounded-ish block, then bridge the gap to the next segment
+        // so turns look like a continuous connected trail rather than disjointed squares.
+        for (let i = 0; i < snake.length; i++) {
+            const part = snake[i];
+            const cx = part.x * gridSize + half;
+            const cy = part.y * gridSize + half;
+            ctx.fillRect(part.x * gridSize + pad, part.y * gridSize + pad, gridSize - pad * 2, gridSize - pad * 2);
+
+            if (i < snake.length - 1) {
+                const next = snake[i + 1];
+                let dx = next.x - part.x;
+                let dy = next.y - part.y;
+                // Handle screen-wrap neighbors so we don't draw a bridge across the whole board
+                if (Math.abs(dx) > 1) dx = 0;
+                if (Math.abs(dy) > 1) dy = 0;
+                if (dx !== 0 || dy !== 0) {
+                    const nx = next.x * gridSize + half;
+                    const ny = next.y * gridSize + half;
+                    const bridgeThickness = gridSize - pad * 2;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.lineWidth = bridgeThickness;
+                    ctx.lineCap = 'butt';
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(nx, ny);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Food: small plus/cross shape, matching the reference LCD screenshot.
+        const foodCx = food.x * gridSize + half;
+        const foodCy = food.y * gridSize + half;
+        const armLength = gridSize * 0.32;
+        const armThickness = Math.max(1.5, gridSize * 0.14);
+        ctx.lineWidth = armThickness;
+        ctx.lineCap = 'square';
+        ctx.beginPath();
+        ctx.moveTo(foodCx - armLength, foodCy);
+        ctx.lineTo(foodCx + armLength, foodCy);
+        ctx.moveTo(foodCx, foodCy - armLength);
+        ctx.lineTo(foodCx, foodCy + armLength);
+        ctx.stroke();
+
+        // Faint pixel-grid overlay for authentic dot-matrix LCD texture.
+        ctx.save();
+        ctx.globalAlpha = 0.06;
+        ctx.strokeStyle = NOKIA_PIXEL;
+        ctx.lineWidth = 1;
+        const step = Math.max(2, gridSize / 8);
+        for (let gx = 0; gx <= canvas.width; gx += step) {
+            ctx.beginPath();
+            ctx.moveTo(gx, 0);
+            ctx.lineTo(gx, canvas.height);
+            ctx.stroke();
+        }
+        for (let gy = 0; gy <= canvas.height; gy += step) {
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            ctx.lineTo(canvas.width, gy);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Inset double-border frame around the play field.
+        ctx.save();
+        ctx.strokeStyle = NOKIA_PIXEL;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = Math.max(1, gridSize * 0.06);
+        const inset = gridSize * 0.18;
+        ctx.strokeRect(inset, inset, canvas.width - inset * 2, canvas.height - inset * 2);
+        ctx.restore();
+    }
 
     function draw(t) {
         const now = performance.now();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (nokiaMode) {
-            // Classic blocky monochrome LCD rendering - snake and food as solid squares,
-            // snapped to the grid (no smooth interpolation) for an authentic retro feel.
-            ctx.fillStyle = NOKIA_PIXEL;
-            const pad = Math.max(1, gridSize * 0.08);
-            for (let i = 0; i < snake.length; i++) {
-                const part = snake[i];
-                ctx.fillRect(part.x * gridSize + pad, part.y * gridSize + pad, gridSize - pad * 2, gridSize - pad * 2);
-            }
-            ctx.fillRect(food.x * gridSize + pad, food.y * gridSize + pad, gridSize - pad * 2, gridSize - pad * 2);
+            drawNokiaScene();
             return;
         }
 

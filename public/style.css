@@ -633,8 +633,8 @@ body.nokia-mode * {
 }
 
 body.nokia-mode canvas {
-    background-color: #9ead86 !important;
-    border: 6px solid #3a3f2e !important;
+    background-color: #a8bf8f !important;
+    border: 8px solid #1a1d14 !important;
 }
 
 body.nokia-mode #startGameScreen,
