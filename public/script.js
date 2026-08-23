@@ -78,11 +78,32 @@ document.addEventListener('DOMContentLoaded', () => {
         gridSize = canvas.width / cellCount;
     }
 
+    const FRUIT_TYPES = ['apple', 'orange', 'grape', 'cherry', 'lemon'];
+    let foodSpawnTime = performance.now();
+    const FOOD_POP_DURATION = 260; // ms
+
     function generateFood() {
-        food = { x: Math.floor(Math.random() * cellCount), y: Math.floor(Math.random() * cellCount) };
+        food = {
+            x: Math.floor(Math.random() * cellCount),
+            y: Math.floor(Math.random() * cellCount),
+            type: FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)]
+        };
         for (let i = 0; i < snake.length; i++) {
             if (snake[i].x === food.x && snake[i].y === food.y) { generateFood(); return; }
         }
+        foodSpawnTime = performance.now();
+    }
+
+    // Ease-out-back curve for a lively "pop" as the fruit appears
+    function easeOutBack(x) {
+        const c1 = 1.70158, c3 = c1 + 1;
+        return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+    }
+
+    function getFoodSpawnScale() {
+        const age = performance.now() - foodSpawnTime;
+        if (age >= FOOD_POP_DURATION) return 1;
+        return Math.max(0, easeOutBack(age / FOOD_POP_DURATION));
     }
 
     function wrapDelta(d) {
@@ -96,7 +117,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return { x: prev.x + dx * t, y: prev.y + dy * t };
     }
 
+    // --- Blink state (wall-clock driven, independent of the fixed game tick) ---
+    let nextBlinkTime = performance.now() + 2000 + Math.random() * 2500;
+    const BLINK_DURATION = 130; // ms
+    let blinkStartTime = -Infinity;
+
+    function getEyeOpenness(now) {
+        if (now >= nextBlinkTime) {
+            blinkStartTime = now;
+            nextBlinkTime = now + 2500 + Math.random() * 3000;
+        }
+        const sinceBlink = now - blinkStartTime;
+        if (sinceBlink >= 0 && sinceBlink < BLINK_DURATION) {
+            // Quick close-then-open curve (0 = fully open, 1 = fully closed)
+            const p = sinceBlink / BLINK_DURATION;
+            return 1 - Math.abs(Math.sin(p * Math.PI));
+        }
+        return 1; // fully open
+    }
+
     function draw(t) {
+        const now = performance.now();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < snake.length; i++) {
             const curr = snake[i];
@@ -104,14 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const pos = interpolatePosition(prev, curr, t);
             ctx.fillStyle = i === 0 ? 'darkgreen' : 'limegreen';
             drawRoundedRect(pos.x * gridSize, pos.y * gridSize, gridSize, gridSize, gridSize / 4);
-            if (i === 0) drawHeadDetails(pos);
+            if (i === 0) drawHeadDetails(pos, now);
         }
-        drawApple();
+        drawFruit(now);
     }
 
-    function drawHeadDetails(part) {
+    function drawHeadDetails(part, now) {
         const eyeWidth = gridSize / 5, eyeHeight = gridSize / 8;
         const eyeOffsetX = gridSize / 4, eyeOffsetY = gridSize / 6;
+        const openness = getEyeOpenness(now); // 1 = open, 0 = closed
         let eyeX, eyeY1, eyeY2;
         switch (direction) {
             case 'right':
@@ -135,32 +177,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         ctx.fillStyle = 'white';
         if (direction === 'left' || direction === 'right') {
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, eyeHeight / 2, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, eyeHeight / 4, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+            const halfH = (eyeHeight / 2) * openness;
+            if (halfH > 0.3) {
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+            } else {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = Math.max(1, gridSize / 18);
+                ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeWidth / 4, eyeY1); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY2); ctx.lineTo(eyeX + eyeWidth / 4, eyeY2); ctx.stroke();
+            }
         } else {
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 4, eyeHeight / 4, 0, 0, Math.PI * 2); ctx.fill();
+            const halfH = (eyeHeight / 2) * openness;
+            if (halfH > 0.3) {
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+            } else {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = Math.max(1, gridSize / 18);
+                ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeWidth / 4, eyeY1); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(eyeX + eyeOffsetX * 2 - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeOffsetX * 2 + eyeWidth / 4, eyeY1); ctx.stroke();
+            }
         }
 
-        const tongueLength = gridSize * 0.3, tongueWidth = gridSize * 0.06;
+        drawTongue(part);
+    }
+
+    // Tongue subtly wags left/right using a slow sine wave, independent of the tick rate.
+    function drawTongue(part) {
+        const now = performance.now();
+        const wag = Math.sin(now / 220) * (Math.PI / 10); // small side-to-side angle offset
+
+        const tongueLength = gridSize * 0.32, tongueWidth = gridSize * 0.06;
         const forkLength = gridSize * 0.1, forkAngle = Math.PI / 8;
         ctx.strokeStyle = 'red'; ctx.lineWidth = tongueWidth; ctx.lineCap = 'round';
-        let startX = (part.x + 0.5) * gridSize, startY = (part.y + 0.5) * gridSize;
-        let endX = startX, endY = startY;
+
+        const startX = (part.x + 0.5) * gridSize, startY = (part.y + 0.5) * gridSize;
+        let baseAngle;
         switch (direction) {
-            case 'right': startX = (part.x + 1) * gridSize; endX = startX + tongueLength; startY = endY = (part.y + 0.6) * gridSize; break;
-            case 'left': startX = part.x * gridSize; endX = startX - tongueLength; startY = endY = (part.y + 0.6) * gridSize; break;
-            case 'up': startY = part.y * gridSize; endY = startY - tongueLength; startX = endX = (part.x + 0.5) * gridSize; break;
-            case 'down': startY = (part.y + 1) * gridSize; endY = startY + tongueLength; startX = endX = (part.x + 0.5) * gridSize; break;
+            case 'right': baseAngle = 0; break;
+            case 'left': baseAngle = Math.PI; break;
+            case 'up': baseAngle = -Math.PI / 2; break;
+            case 'down': baseAngle = Math.PI / 2; break;
         }
-        ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke();
-        const angle = Math.atan2(endY - startY, endX - startX);
+        const angle = baseAngle + wag;
+
+        // Anchor the tongue base just outside the head edge in the facing direction
+        const edgeOffset = gridSize * 0.5;
+        const anchorX = startX + Math.cos(baseAngle) * edgeOffset;
+        const anchorY = startY + Math.sin(baseAngle) * edgeOffset;
+        const endX = anchorX + Math.cos(angle) * tongueLength;
+        const endY = anchorY + Math.sin(angle) * tongueLength;
+
+        ctx.beginPath(); ctx.moveTo(anchorX, anchorY); ctx.lineTo(endX, endY); ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(endX, endY);
         ctx.lineTo(endX + Math.cos(angle + forkAngle) * forkLength, endY + Math.sin(angle + forkAngle) * forkLength);
@@ -169,8 +246,27 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.stroke();
     }
 
-    function drawApple() {
+    function drawFruit(now) {
+        const scale = getFoodSpawnScale();
         const cx = (food.x + 0.5) * gridSize, cy = (food.y + 0.5) * gridSize;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        ctx.translate(-cx, -cy);
+
+        switch (food.type) {
+            case 'orange': drawOrange(cx, cy); break;
+            case 'grape': drawGrape(cx, cy); break;
+            case 'cherry': drawCherry(cx, cy); break;
+            case 'lemon': drawLemon(cx, cy); break;
+            default: drawAppleFruit(cx, cy); break;
+        }
+
+        ctx.restore();
+    }
+
+    function drawAppleFruit(cx, cy) {
         const r = gridSize / 2.5;
         ctx.fillStyle = 'red';
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
@@ -179,6 +275,61 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = 'green';
         ctx.beginPath();
         ctx.ellipse(cx + gridSize / 16, cy - r - gridSize / 16, gridSize / 8, gridSize / 16, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawOrange(cx, cy) {
+        const r = gridSize / 2.5;
+        ctx.fillStyle = '#ff9f1c';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#4a7c2a'; ctx.lineWidth = gridSize / 15;
+        ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy - r - gridSize / 10); ctx.stroke();
+        ctx.fillStyle = '#3f8f3f';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - r - gridSize / 10, gridSize / 9, gridSize / 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawGrape(cx, cy) {
+        const r = gridSize / 6.5;
+        ctx.fillStyle = '#8e44ad';
+        [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
+            ctx.beginPath();
+            ctx.arc(cx + dx * r * 1.1, cy + dy * r * 1.1, r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.strokeStyle = '#3f8f3f'; ctx.lineWidth = gridSize / 18;
+        ctx.beginPath(); ctx.moveTo(cx, cy - r * 2.4); ctx.lineTo(cx, cy - r * 3.2); ctx.stroke();
+    }
+
+    function drawCherry(cx, cy) {
+        const r = gridSize / 5.5;
+        const offset = gridSize / 6;
+        ctx.fillStyle = '#d21f3c';
+        ctx.beginPath(); ctx.arc(cx - offset, cy + offset / 2, r, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + offset, cy + offset / 2, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#4a7c2a'; ctx.lineWidth = gridSize / 20;
+        ctx.beginPath();
+        ctx.moveTo(cx - offset, cy + offset / 2 - r);
+        ctx.quadraticCurveTo(cx, cy - gridSize / 2, cx, cy - gridSize / 1.8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + offset, cy + offset / 2 - r);
+        ctx.quadraticCurveTo(cx, cy - gridSize / 2, cx, cy - gridSize / 1.8);
+        ctx.stroke();
+    }
+
+    function drawLemon(cx, cy) {
+        ctx.fillStyle = '#f4e04d';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, gridSize / 2.6, gridSize / 3.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f4e04d';
+        ctx.beginPath();
+        ctx.ellipse(cx - gridSize / 2.7, cy, gridSize / 12, gridSize / 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx + gridSize / 2.7, cy, gridSize / 12, gridSize / 12, 0, 0, Math.PI * 2);
         ctx.fill();
     }
 
