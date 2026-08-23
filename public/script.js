@@ -472,16 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
         bannerEl.appendChild(scoreSpan);
     }
 
-    // Rank 1 is intentionally not badged here - the top player is already highlighted
-    // in the trophy banner above the list, so repeating "1" in the list would be redundant.
-    const RANK_MEDALS = [undefined, 'silver', 'bronze'];
+    // Rank #1 is shown in the trophy banner above the list, so the list itself starts
+    // at rank #2 to avoid showing the top player twice.
+    const RANK_MEDALS = { 2: 'silver', 3: 'bronze' };
 
-    function createRankBadge(index) {
-        const medal = RANK_MEDALS[index];
+    function createRankBadge(rank) {
+        const medal = RANK_MEDALS[rank];
         if (!medal) return null;
         const badge = document.createElement('span');
         badge.className = 'rank-badge rank-' + medal;
-        badge.textContent = index + 1;
+        badge.textContent = rank;
         return badge;
     }
 
@@ -494,13 +494,15 @@ document.addEventListener('DOMContentLoaded', () => {
             listElement.appendChild(li);
             return;
         }
-        scores.slice(0, 5).forEach((entry, index) => {
+        // Skip rank #1 (already shown in the banner above) and show the next 5 instead.
+        scores.slice(1, 6).forEach((entry, i) => {
+            const rank = i + 2; // slice starts at the 2nd-place entry
             const li = document.createElement('li');
 
             const infoWrap = document.createElement('span');
             infoWrap.className = 'score-info';
 
-            const badge = createRankBadge(index);
+            const badge = createRankBadge(rank);
             if (badge) infoWrap.appendChild(badge);
 
             const nameSpan = document.createElement('span');
