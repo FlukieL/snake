@@ -93,23 +93,7 @@
         <button id="dismissPrompt">Dismiss</button>
     </div>
 
-    <script src="/script.js" defer></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            });
-        }
-
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-        if (isIOS && !isStandalone) {
-            document.getElementById('iosPrompt').style.display = 'block';
-        }
-        document.getElementById('dismissPrompt').addEventListener('click', () => {
-            document.getElementById('iosPrompt').style.display = 'none';
-        });
-    </script>
+    <script src="/js/main.js" type="module"></script>
 </body>
 
 </html>
