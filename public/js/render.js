@@ -160,12 +160,14 @@ function drawHeadDetails(ctx, part, now) {
     ctx.fillStyle = 'white';
     if (state.direction === 'left' || state.direction === 'right') {
         const halfH = (eyeHeight / 2) * openness;
+        // Pupil vertical offset toward the bottom of the eye (less goofy/cross-eyed look).
+        const pupilShift = (eyeWidth / 2) * 0.4;
         if (halfH > 0.3) {
             ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, halfH, eyeWidth / 2, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 - pupilShift, halfH / 2, eyeWidth / 4, 0, 0, Math.PI * 2); ctx.fill();
         } else {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = Math.max(1, gridSize / 18);
@@ -175,12 +177,14 @@ function drawHeadDetails(ctx, part, now) {
         }
     } else {
         const halfH = (eyeHeight / 2) * openness;
+        // Pupil vertical offset toward the bottom of the eye (less goofy/cross-eyed look).
+        const pupilShift = halfH * 0.4;
         if (halfH > 0.3) {
             ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
         } else {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = Math.max(1, gridSize / 18);

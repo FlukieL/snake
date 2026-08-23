@@ -190,20 +190,60 @@ export function refreshAfterSubmit(newScores, mode) {
     fetchHighScores('weekly', mode);
 }
 
+// Inserts a sliding-pill indicator element into a tab container (if not
+// already present) and positions it under whichever button currently has
+// the `.active` class. Called both on init and after every tab switch so
+// the pill smoothly glides to the newly active button via CSS transitions.
+function ensureSlider(tabsEl) {
+    let slider = tabsEl.querySelector('.tab-slider');
+    if (!slider) {
+        slider = document.createElement('div');
+        slider.className = 'tab-slider';
+        tabsEl.insertBefore(slider, tabsEl.firstChild);
+    }
+    return slider;
+}
+
+function positionSlider(tabsEl, activeBtn) {
+    if (!activeBtn) return;
+    const slider = ensureSlider(tabsEl);
+    // Use offsetLeft/offsetWidth (relative to the tabs container's padding
+    // box) so the pill lines up exactly under the button regardless of
+    // container width/number of tabs.
+    slider.style.left = `${activeBtn.offsetLeft}px`;
+    slider.style.width = `${activeBtn.offsetWidth}px`;
+}
+
 export function initLeaderboardTabs() {
     document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
         const targetId = tabsEl.getAttribute('data-target');
         const mode = tabsEl.getAttribute('data-mode') || 'classic';
         const listElement = document.getElementById(targetId);
-        tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+        const buttons = tabsEl.querySelectorAll('.tab-btn');
+
+        // Position the pill under the initially-active tab once the layout
+        // has been painted (offsetLeft/Width need real layout dimensions).
+        requestAnimationFrame(() => positionSlider(tabsEl, tabsEl.querySelector('.tab-btn.active')));
+
+        buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const period = btn.getAttribute('data-period');
-                tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                positionSlider(tabsEl, btn);
                 activePeriodFor(mode)[targetId] = period;
                 renderScoreboard(listElement, cacheFor(mode)[period], mode);
                 fetchHighScores(period, mode);
             });
+        });
+    });
+
+    // Re-align all sliders on resize, since button widths/offsets change
+    // with the container's responsive width.
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('.scoreboard-tabs, .mode-tabs').forEach(tabsEl => {
+            const activeBtn = tabsEl.querySelector('.tab-btn.active, .mode-tab-btn.active');
+            positionSlider(tabsEl, activeBtn);
         });
     });
 }
@@ -213,11 +253,16 @@ export function initLeaderboardTabs() {
 // whenever the Levels panel is selected (it has no effect in Levels Mode).
 export function initModeTabs() {
     if (!dom.scoreboardModeTabs) return;
-    dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn').forEach(btn => {
+    const modeButtons = dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn');
+
+    requestAnimationFrame(() => positionSlider(dom.scoreboardModeTabs, dom.scoreboardModeTabs.querySelector('.mode-tab-btn.active')));
+
+    modeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const mode = btn.getAttribute('data-mode');
-            dom.scoreboardModeTabs.querySelectorAll('.mode-tab-btn').forEach(b => b.classList.remove('active'));
+            modeButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            positionSlider(dom.scoreboardModeTabs, btn);
             document.querySelectorAll('[data-mode-panel]').forEach(panel => {
                 panel.style.display = panel.getAttribute('data-mode-panel') === mode ? 'block' : 'none';
             });
