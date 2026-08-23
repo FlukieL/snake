@@ -472,7 +472,9 @@ document.addEventListener('DOMContentLoaded', () => {
         bannerEl.appendChild(scoreSpan);
     }
 
-    const RANK_MEDALS = ['gold', 'silver', 'bronze'];
+    // Rank 1 is intentionally not badged here - the top player is already highlighted
+    // in the trophy banner above the list, so repeating "1" in the list would be redundant.
+    const RANK_MEDALS = [undefined, 'silver', 'bronze'];
 
     function createRankBadge(index) {
         const medal = RANK_MEDALS[index];
@@ -592,6 +594,14 @@ document.addEventListener('DOMContentLoaded', () => {
         googleSignInContainer.style.display = 'none';
         submitScoreButton.disabled = false;
         submitScoreButton.textContent = 'Submit Score';
+
+        // Auto-submit the pending score as soon as the player signs in, so they don't
+        // need a separate manual click after authenticating.
+        if (gameOver && score > 0 && !scoreSubmitted) {
+            submitCurrentScoreIfNeeded();
+            submitScoreButton.disabled = true;
+            submitScoreButton.textContent = 'Submitted';
+        }
     }
 
     function initGoogleSignIn() {
