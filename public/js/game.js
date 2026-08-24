@@ -230,9 +230,11 @@ function triggerGameOver() {
 }
 
 // Updates the multiplier badge's flash speed every frame, independent of the
-// game tick rate: the badge pulses faster and faster as the multiplier's
-// remaining time runs out, giving a clear "urgency" cue right before it
-// expires, rather than a constant flash rate throughout.
+// game tick rate. The badge stays solid/steady while the multiplier is fresh,
+// and only starts flashing (getting progressively faster) once it's close to
+// expiring, giving a clear "hurry up" cue right before it runs out rather
+// than flickering the entire time it's active.
+const MULTIPLIER_FLASH_WINDOW = 3500; // ms before expiry when flashing begins
 function updateMultiplierBadgeFlash(now) {
     if (!dom.multiplierBadge || dom.multiplierBadge.style.display === 'none') return;
     const remaining = state.effects.multiplierUntil - now;
@@ -240,14 +242,19 @@ function updateMultiplierBadgeFlash(now) {
         dom.multiplierBadge.style.display = 'none';
         return;
     }
-    // Flash period scales from ~1400ms (calm) down to ~450ms (urgent) as the
-    // remaining time shrinks from the full duration down to 0 - noticeably
-    // gentler/slower than before so it's a subtle cue rather than a strobe.
-    const fraction = Math.min(1, remaining / constants.MULTIPLIER_DURATION);
-    const period = 450 + fraction * 950;
-    // Narrower oscillation range (0.75-1.0 instead of 0.1-1.0) keeps the
-    // badge readable at all times instead of flashing near-invisible.
-    const pulse = 0.875 + 0.125 * Math.sin((now / period) * Math.PI * 2);
+    if (remaining > MULTIPLIER_FLASH_WINDOW) {
+        // Still plenty of time left - stay fully solid, no flashing at all.
+        dom.multiplierBadge.style.opacity = '1';
+        return;
+    }
+    // Within the final few seconds: flash period speeds up from ~700ms down
+    // to ~200ms as the remaining time approaches 0, and the flash amplitude
+    // also grows from barely noticeable to a clear pulse - so urgency builds
+    // smoothly rather than snapping straight to a fast flicker.
+    const urgency = 1 - remaining / MULTIPLIER_FLASH_WINDOW; // 0 (just entered window) -> 1 (about to expire)
+    const period = 700 - urgency * 500;
+    const amplitude = 0.08 + urgency * 0.17;
+    const pulse = (1 - amplitude) + amplitude * Math.sin((now / period) * Math.PI * 2);
     dom.multiplierBadge.style.opacity = pulse.toFixed(2);
 }
 

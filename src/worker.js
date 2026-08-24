@@ -111,10 +111,12 @@ const VALID_MODES = ['classic', 'levels'];
 
 async function getTopScores(db, period, mode) {
     if (mode === 'levels') {
-        // Levels mode ranks by highest level reached first, then score as tiebreaker.
+        // Levels mode ranks by score first, with highest level reached as a
+        // tiebreaker (e.g. two players tied on score are ranked by whoever
+        // got further before running out of lives).
         const query = period === 'weekly'
-            ? "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY level DESC, score DESC, created_at ASC LIMIT ?1"
-            : "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' ORDER BY level DESC, score DESC, created_at ASC LIMIT ?1";
+            ? "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1"
+            : "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1";
         const { results } = await db.prepare(query).bind(TOP_N).all();
         return results || [];
     }

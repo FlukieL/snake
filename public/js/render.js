@@ -513,12 +513,25 @@ export function draw(t) {
     const activeWaves = updateAndGetActiveWaves(state.snake.length - 1, now);
     let headPos = null;
 
-    // While a score multiplier is active in Levels Mode, the whole snake
-    // gently pulses yellow so the bonus is obvious at a glance rather than
-    // only visible via a small badge or number. Kept subtle/slow (period
-    // ~90 -> ~260ms, low amplitude) rather than a rapid strobe.
+    // While a score multiplier is active in Levels Mode, the snake stays a
+    // steady tinted color at first and only starts gently flashing yellow
+    // once the bonus is close to expiring - giving a clear "hurry up" cue
+    // right before it runs out, rather than flickering the whole time it's
+    // active (which was distracting immediately after picking one up).
     const multiplierActive = state.gameMode === 'levels' && isScoreMultiplied();
-    const flashPulse = multiplierActive ? (0.25 + Math.sin(now / 260) * 0.25) : 0;
+    let flashPulse = 0;
+    if (multiplierActive) {
+        const remaining = state.effects.multiplierUntil - now;
+        const flashWindow = 3500; // ms before expiry when flashing begins
+        if (remaining > flashWindow) {
+            flashPulse = 0.22; // steady, mild tint - no flashing yet
+        } else {
+            const urgency = 1 - remaining / flashWindow;
+            const period = 260 - urgency * 100;
+            const amplitude = 0.15 + urgency * 0.2;
+            flashPulse = 0.22 + amplitude * Math.sin((now / period) * Math.PI * 2);
+        }
+    }
 
     for (let i = 0; i < state.snake.length; i++) {
         const curr = state.snake[i];
