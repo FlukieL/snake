@@ -201,7 +201,7 @@ function triggerGameOver() {
     playGameOverSound();
     dom.gameMusic.pause();
     dom.finalScore.innerText = state.score;
-    dom.gameOverScreen.style.display = 'flex';
+    dom.gameOverScreen.style.display = 'block';
     resetSubmitUI();
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
@@ -324,7 +324,7 @@ export function initializeGame(mode) {
 export function togglePause() {
     state.gamePaused = !state.gamePaused;
     dom.pauseButton.textContent = state.gamePaused ? 'Resume' : 'Pause';
-    dom.pauseScreen.style.display = state.gamePaused ? 'flex' : 'none';
+    dom.pauseScreen.style.display = state.gamePaused ? 'block' : 'none';
     if (state.gamePaused) {
         dom.gameMusic.pause();
     } else {
@@ -357,7 +357,7 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     }
     dom.gameOverScreen.style.display = 'none';
     submitCurrentScoreIfNeeded();
-    dom.startGameScreen.style.display = 'flex';
+    dom.startGameScreen.style.display = 'block';
     dom.canvas.style.display = 'none';
     dom.scoreCounter.style.display = 'none';
     dom.pauseButton.style.display = 'none';
