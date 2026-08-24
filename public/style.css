@@ -599,32 +599,6 @@ button:disabled:hover {
     letter-spacing: 0.02em;
 }
 
-/* On phones in landscape orientation, the square game board is vertically
-   centered and only as tall as the (limited) viewport height, leaving wide
-   empty margins on either side - but the score counter was still centered
-   horizontally on the full screen, so it floated directly on top of the
-   board's top edge. Move it into the left margin instead so it no longer
-   overlaps the game board. Constrained to short/landscape phone viewports
-   specifically (not tablets/desktop, which have enough vertical room that
-   the board doesn't shrink down to conflict with it). */
-@media (orientation: landscape) and (max-height: 500px) {
-    #scoreCounter {
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-    }
-
-    .animateScore {
-        animation: scoreAnimationLandscape 0.3s ease-in-out;
-    }
-}
-
-@keyframes scoreAnimationLandscape {
-    0% { transform: translateY(-50%) scale(1); }
-    50% { transform: translateY(-50%) scale(1.25); color: var(--accent); }
-    100% { transform: translateY(-50%) scale(1); }
-}
-
 .animateScore {
     animation: scoreAnimation 0.3s ease-in-out;
 }
@@ -635,6 +609,11 @@ button:disabled:hover {
     100% { transform: translateX(-50%) scale(1); }
 }
 
+@keyframes scoreAnimationLandscape {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.25); color: var(--accent); }
+    100% { transform: translateY(-50%) scale(1); }
+}
 #gameOverScreen h2 {
     font-size: 2.6rem;
     margin-bottom: 4px;
@@ -1125,4 +1104,41 @@ body.nokia-mode .creator-info {
 
 #powerupInfoCloseButton {
     width: 100%;
+}
+
+/* On phones in landscape orientation, the square game board is vertically
+   centered and only as tall as the (limited) viewport height, leaving wide
+   empty margins on either side - but the score counter and multiplier
+   badge are otherwise positioned/anchored for the portrait layout, so they
+   float directly on top of the board. Reposition both into the left
+   margin instead so neither overlaps the game board. Constrained to
+   short/landscape phone viewports specifically (not tablets/desktop, which
+   have enough vertical room that the board doesn't shrink down to conflict
+   with them).
+   IMPORTANT: this block is placed at the very end of the file, after every
+   other rule targeting these same elements (including the `@media
+   (max-width: 768px)` portrait-mobile overrides) - with equal selector
+   specificity, CSS applies whichever matching rule appears LAST in source
+   order regardless of which one is inside a media query, so this must be
+   the last word to reliably win the cascade on any device (e.g. a phone
+   that's both <768px wide AND landscape+short at the same time). */
+@media (orientation: landscape) and (max-height: 500px) {
+    #scoreCounter {
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .animateScore {
+        animation: scoreAnimationLandscape 0.3s ease-in-out;
+    }
+
+    /* Stack the multiplier badge directly below the score counter in the
+       left margin (rather than to the right of a horizontally-centered
+       score, which doesn't apply in this layout). */
+    #multiplierBadge {
+        left: 16px;
+        top: calc(50% + 46px);
+        transform: none;
+    }
 }
