@@ -56,7 +56,25 @@ function setMenuFocus(el) {
 export function focusFirstMenuItem() {
     const screen = getActiveMenuScreen();
     const items = getMenuFocusables(screen);
-    if (items.length) setMenuFocus(items[0]);
+    if (!items.length) return;
+
+    // On the main menu specifically, default focus to the active mode's
+    // "Play" button rather than whichever element happens to be first in
+    // DOM order - the Classic/Levels mode-tab buttons are positioned
+    // before the Play button in the markup, so a plain "first item" default
+    // was highlighting the Classic tab instead of the much more useful
+    // Play button (matching what a player almost always wants to do next).
+    if (screen === dom.startGameScreen) {
+        const activePanel = Array.from(screen.querySelectorAll('.mode-panel'))
+            .find(panel => panel.offsetParent !== null);
+        const playButton = activePanel && activePanel.querySelector('.menu-button');
+        if (playButton && items.includes(playButton)) {
+            setMenuFocus(playButton);
+            return;
+        }
+    }
+
+    setMenuFocus(items[0]);
 }
 
 // Moves keyboard/gamepad focus to the next/previous focusable item within
