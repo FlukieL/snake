@@ -132,73 +132,79 @@ function drawTongue(ctx, part) {
     ctx.stroke();
 }
 
+// Unit forward/perpendicular vectors for each travel direction. "forward"
+// points the way the snake is heading (used to push both eyes toward the
+// leading edge of the head, and to aim the pupils looking that way);
+// "perp" is perpendicular to forward (used to spread the two eyes apart
+// side-by-side relative to the direction of travel, not the screen axes).
+const DIRECTION_VECTORS = {
+    right: { fwd: { x: 1, y: 0 }, perp: { x: 0, y: 1 } },
+    left: { fwd: { x: -1, y: 0 }, perp: { x: 0, y: 1 } },
+    up: { fwd: { x: 0, y: -1 }, perp: { x: 1, y: 0 } },
+    down: { fwd: { x: 0, y: 1 }, perp: { x: 1, y: 0 } }
+};
+
 function drawHeadDetails(ctx, part, now) {
     const gridSize = state.gridSize;
-    const eyeWidth = gridSize / 5, eyeHeight = gridSize / 8;
-    const eyeOffsetX = gridSize / 4, eyeOffsetY = gridSize / 6;
+    const centerX = (part.x + 0.5) * gridSize;
+    const centerY = (part.y + 0.5) * gridSize;
+    const { fwd, perp } = DIRECTION_VECTORS[state.direction] || DIRECTION_VECTORS.right;
+
     const openness = getEyeOpenness(now);
-    let eyeX, eyeY1, eyeY2;
-    switch (state.direction) {
-        case 'right':
-            eyeX = part.x * gridSize + eyeOffsetX;
-            eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;
-            eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;
-            break;
-        case 'left':
-            eyeX = (part.x + 1) * gridSize - eyeOffsetX;
-            eyeY1 = part.y * gridSize + eyeOffsetY * 1.3;
-            eyeY2 = (part.y + 1) * gridSize - eyeOffsetY * 1.3;
-            break;
-        case 'up':
-            eyeX = (part.x + 0.5) * gridSize - eyeOffsetX;
-            eyeY1 = eyeY2 = (part.y + 1) * gridSize - eyeOffsetY;
-            break;
-        case 'down':
-            eyeX = (part.x + 0.5) * gridSize - eyeOffsetX;
-            eyeY1 = eyeY2 = part.y * gridSize + eyeOffsetY;
-            break;
-    }
+    // Eyes are pushed toward the leading (forward) edge of the head, and
+    // spread apart along the perpendicular axis - this correctly places
+    // them on the right side of the head when facing right, on top when
+    // facing up, etc., instead of always sitting on a fixed screen edge.
+    const forwardOffset = gridSize * 0.22;
+    const sideOffset = gridSize * 0.22;
+    const eyeRadiusX = gridSize * 0.11;
+    const eyeRadiusYFull = gridSize * 0.14;
+    const eyeRadiusY = eyeRadiusYFull * openness;
+    // Pupils are pushed further along "forward" than the eye whites, so
+    // they appear to be looking the direction the snake is travelling
+    // (e.g. pupils sit on the right side of each eye when heading right).
+    const pupilForwardShift = gridSize * 0.05;
+    const pupilRadiusX = gridSize * 0.055;
+    const pupilRadiusY = (gridSize * 0.07) * openness;
+
+    const eye1Center = {
+        x: centerX + fwd.x * forwardOffset + perp.x * sideOffset,
+        y: centerY + fwd.y * forwardOffset + perp.y * sideOffset
+    };
+    const eye2Center = {
+        x: centerX + fwd.x * forwardOffset - perp.x * sideOffset,
+        y: centerY + fwd.y * forwardOffset - perp.y * sideOffset
+    };
+
+    // Canvas ellipse() takes axis-aligned radii, so rotate the ellipse to
+    // align its long axis with the forward direction. Angle 0 = pointing
+    // along +x (right); atan2 gives the correct rotation for any of the
+    // four cardinal directions.
+    const rotation = Math.atan2(fwd.y, fwd.x);
+
     ctx.fillStyle = 'white';
-    if (state.direction === 'left' || state.direction === 'right') {
-        const halfH = (eyeHeight / 2) * openness;
-        // Pupil vertical offset toward the bottom of each eye (both the top
-        // eye and the bottom eye get their pupil pushed down within their
-        // own oval - previously the bottom eye's pupil was shifted upward
-        // toward the head's center instead, which looked lopsided/goofy).
-        const pupilShift = halfH * 0.55;
-        if (halfH > 0.3) {
-            // Horizontal radius stays fixed (eyeWidth/2); vertical radius (halfH)
-            // is the one affected by blinking, so the eye closes top-to-bottom
-            // rather than squashing sideways (which caused a horizontal "flicker").
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-        } else {
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = Math.max(1, gridSize / 18);
-            ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeWidth / 4, eyeY1); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY2); ctx.lineTo(eyeX + eyeWidth / 4, eyeY2); ctx.stroke();
-        }
+    if (eyeRadiusY > 0.6) {
+        ctx.beginPath(); ctx.ellipse(eye1Center.x, eye1Center.y, eyeRadiusYFull, eyeRadiusX, rotation + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(eye2Center.x, eye2Center.y, eyeRadiusYFull, eyeRadiusX, rotation + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = 'black';
+        const pupil1 = { x: eye1Center.x + fwd.x * pupilForwardShift, y: eye1Center.y + fwd.y * pupilForwardShift };
+        const pupil2 = { x: eye2Center.x + fwd.x * pupilForwardShift, y: eye2Center.y + fwd.y * pupilForwardShift };
+        ctx.beginPath(); ctx.ellipse(pupil1.x, pupil1.y, pupilRadiusY, pupilRadiusX, rotation + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(pupil2.x, pupil2.y, pupilRadiusY, pupilRadiusX, rotation + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
     } else {
-        const halfH = (eyeHeight / 2) * openness;
-        // Pupil vertical offset toward the bottom of the eye (less goofy/cross-eyed look).
-        const pupilShift = halfH * 0.4;
-        if (halfH > 0.3) {
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX + eyeOffsetX * 2, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-        } else {
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = Math.max(1, gridSize / 18);
-            ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(eyeX - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeWidth / 4, eyeY1); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(eyeX + eyeOffsetX * 2 - eyeWidth / 4, eyeY1); ctx.lineTo(eyeX + eyeOffsetX * 2 + eyeWidth / 4, eyeY1); ctx.stroke();
-        }
+        // Blinking: draw closed-eye lines instead of ellipses, oriented the
+        // same way the open eyes would be (perpendicular to forward).
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = Math.max(1, gridSize / 18);
+        ctx.lineCap = 'round';
+        const lineHalf = eyeRadiusX;
+        [eye1Center, eye2Center].forEach(c => {
+            ctx.beginPath();
+            ctx.moveTo(c.x - perp.x * lineHalf, c.y - perp.y * lineHalf);
+            ctx.lineTo(c.x + perp.x * lineHalf, c.y + perp.y * lineHalf);
+            ctx.stroke();
+        });
     }
 
     drawTongue(ctx, part);
