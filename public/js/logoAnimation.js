@@ -57,8 +57,13 @@ const LETTER_E = [
 
 const LETTERS = [LETTER_S, LETTER_N, LETTER_A, LETTER_K, LETTER_E];
 
+// Alongside the boolean wall grid, also track which letter (0-4, for
+// S/N/A/K/E) owns each wall cell, so groups of cells belonging to the same
+// letter can flicker together like an individual neon tube - rather than
+// either the whole sign or every single cell flickering independently.
 function buildWallGrid() {
     const grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
+    const ownerGrid = Array.from({ length: ROWS }, () => new Array(COLS).fill(-1));
     const letterWidth = 5;
     const gap = 1;
     const totalWidth = LETTERS.length * letterWidth + (LETTERS.length - 1) * gap;
@@ -74,15 +79,55 @@ function buildWallGrid() {
                     const gy = startY + ry;
                     if (gy >= 0 && gy < ROWS && gx >= 0 && gx < COLS) {
                         grid[gy][gx] = true;
+                        ownerGrid[gy][gx] = li;
                     }
                 }
             }
         });
     });
-    return grid;
+    return { grid, ownerGrid };
 }
 
-const WALLS = buildWallGrid();
+const { grid: WALLS, ownerGrid: WALL_OWNER } = buildWallGrid();
+
+// Per-letter flicker state, simulating an individual neon tube per letter:
+// a gentle idle "hum" shimmer most of the time, punctuated by occasional
+// brief dim flickers (sometimes chained into a quick double-flicker/stutter)
+// at randomized intervals - so letters flicker independently and
+// unpredictably, like a real neon sign with slightly faulty tubes.
+const letterFlicker = LETTERS.map(() => ({
+    intensity: 1,
+    glitchUntil: 0,
+    nextGlitchAt: performance.now() + 600 + Math.random() * 2500,
+    humPhase: Math.random() * Math.PI * 2
+}));
+
+function updateLetterFlicker(now) {
+    letterFlicker.forEach(state => {
+        let target = 0.92 + 0.08 * Math.sin(now / 700 + state.humPhase);
+
+        if (now < state.glitchUntil) {
+            // Mid-glitch: brief dim flicker.
+            target = 0.1 + Math.random() * 0.2;
+        } else if (now >= state.nextGlitchAt) {
+            // Trigger a new glitch: a short flicker, occasionally chained
+            // into a quick double-stutter for extra realism.
+            const glitchLength = 60 + Math.random() * 90;
+            state.glitchUntil = now + glitchLength;
+            state.nextGlitchAt = now + glitchLength + 400 + Math.random() * 3200;
+            if (Math.random() < 0.35) {
+                // Schedule a second quick flicker shortly after this one.
+                state.nextGlitchAt = now + glitchLength + 90 + Math.random() * 60;
+            }
+            target = 0.1 + Math.random() * 0.2;
+        }
+
+        // Smoothly ease intensity toward the target rather than snapping,
+        // so both the idle hum and the glitches read as light physically
+        // brightening/dimming rather than instantly toggling.
+        state.intensity += (target - state.intensity) * 0.35;
+    });
+}
 
 function isWall(x, y) {
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return true;
@@ -232,13 +277,19 @@ function getThemeColors() {
     return {
         head: isLevels ? '#7d3f8e' : '#0f5c22',
         body: isLevels ? '#ba68c8' : '#33d17a',
-        wall: isLevels ? 'rgba(186, 104, 200, 0.35)' : 'rgba(51, 209, 122, 0.35)',
+        // Bright, saturated neon-tube color for the SNAKE lettering itself
+        // (previously a dim static fill) - the per-letter flicker intensity
+        // modulates both this fill's alpha and a matching glow (shadowBlur)
+        // around each letter, so the wall text visibly glows/dims like a
+        // real neon sign rather than the snake being the eye-catching part.
+        wallGlow: isLevels ? '#e6a6ff' : '#7dffb0',
+        wallCore: isLevels ? '#ffffff' : '#eafff2',
         food: isLevels ? '#ffd54f' : '#ff6b6b',
         bg: '#101014'
     };
 }
 
-function draw() {
+function draw(now) {
     if (!ctx || !canvas) return;
     const colors = getThemeColors();
 
@@ -248,12 +299,25 @@ function draw() {
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    ctx.fillStyle = colors.wall;
+    // Draw each letter's wall cells with its own flicker-driven glow: a
+    // wide, soft shadowBlur "halo" behind a brighter core fill, both scaled
+    // by that letter's current intensity - dimmer letters glow less and
+    // fade toward the base color, bright ones glow strongly outward like a
+    // freshly-lit neon tube.
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
-            if (WALLS[y][x]) {
-                ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
-            }
+            if (!WALLS[y][x]) continue;
+            const owner = WALL_OWNER[y][x];
+            const intensity = owner >= 0 ? letterFlicker[owner].intensity : 1;
+            const px = x * cellSize, py = y * cellSize, size = cellSize - 1;
+
+            ctx.save();
+            ctx.shadowColor = colors.wallGlow;
+            ctx.shadowBlur = cellSize * (0.35 + intensity * 1.1);
+            ctx.fillStyle = colors.wallGlow;
+            ctx.globalAlpha = 0.35 + intensity * 0.65;
+            ctx.fillRect(px, py, size, size);
+            ctx.restore();
         }
     }
 
@@ -289,7 +353,8 @@ function loop(now) {
         stepSnake();
         lastStepTime = now;
     }
-    draw();
+    updateLetterFlicker(now);
+    draw(now);
     requestAnimationFrame(loop);
 }
 
