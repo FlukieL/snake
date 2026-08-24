@@ -32,13 +32,18 @@ function initTouch() {
     document.addEventListener('touchmove', evt => {
         if (!xDown || !yDown) return;
         // Prevent iOS Safari's default scroll/rubber-band/bounce behavior
-        // from fighting with swipe gestures during gameplay - without this,
-        // the browser tries to scroll the page on every swipe, which is a
-        // major contributor to the sluggish/janky feel reported specifically
-        // on iOS (Android and desktop don't have this same default gesture
-        // conflict). Must use a non-passive listener for preventDefault() to
-        // have any effect.
-        if (state.inGame) evt.preventDefault();
+        // from fighting with swipe gestures during ACTIVE gameplay only -
+        // without this, the browser tries to scroll the page on every swipe,
+        // which is a major contributor to the sluggish/janky feel reported
+        // specifically on iOS (Android/desktop don't have this same default
+        // gesture conflict). Must use a non-passive listener for
+        // preventDefault() to have any effect.
+        // Deliberately checks !gameOver/!gamePaused too (not just inGame) -
+        // state.inGame stays true all the way through the Game Over screen
+        // (it's only reset when returning to the main menu), so gating on
+        // inGame alone was also blocking scrolling on the Game Over
+        // screen's scoreboard/sign-in content on iOS.
+        if (state.inGame && !state.gameOver && !state.gamePaused) evt.preventDefault();
         const xUp = evt.touches[0].clientX;
         const yUp = evt.touches[0].clientY;
         const xDiff = xDown - xUp;
