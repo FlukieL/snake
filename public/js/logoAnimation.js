@@ -95,6 +95,11 @@ let food = null;
 let ctx = null;
 let canvas = null;
 let cellSize = 0;
+// Pixel offsets so the grid is centered within the canvas whenever the
+// container's aspect ratio doesn't exactly match COLS:ROWS - prevents the
+// bottom (or sides) of the grid being clipped/cut off.
+let offsetX = 0;
+let offsetY = 0;
 let lastStepTime = 0;
 let stuckCounter = 0; // counts consecutive ticks without eating, to force a reset if wandering forever
 const STEP_INTERVAL = 150; // ms between AI moves - deliberately slow/calm
@@ -240,6 +245,9 @@ function draw() {
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
     ctx.fillStyle = colors.wall;
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
@@ -271,6 +279,8 @@ function draw() {
         ctx.closePath();
         ctx.fill();
     });
+
+    ctx.restore();
 }
 
 function loop(now) {
@@ -294,7 +304,16 @@ export function initLogoAnimation() {
         canvas.width = Math.round(rect.width * dpr);
         canvas.height = Math.round(rect.height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        cellSize = rect.width / COLS;
+        // Use whichever dimension is more constraining (width/COLS vs
+        // height/ROWS) as the cell size, so the whole COLS x ROWS grid
+        // always fits fully within the canvas without being clipped -
+        // previously cellSize was derived from width alone, which could
+        // make the grid taller than the container and cut off the bottom
+        // rows whenever the container's aspect ratio didn't exactly match
+        // COLS:ROWS (e.g. a short, wide banner).
+        cellSize = Math.min(rect.width / COLS, rect.height / ROWS);
+        offsetX = (rect.width - cellSize * COLS) / 2;
+        offsetY = (rect.height - cellSize * ROWS) / 2;
     };
     resize();
     window.addEventListener('resize', resize);
