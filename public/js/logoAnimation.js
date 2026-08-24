@@ -98,7 +98,7 @@ const { grid: WALLS, ownerGrid: WALL_OWNER } = buildWallGrid();
 const letterFlicker = LETTERS.map(() => ({
     intensity: 1,
     glitchUntil: 0,
-    nextGlitchAt: performance.now() + 600 + Math.random() * 2500,
+    nextGlitchAt: performance.now() + 2500 + Math.random() * 6000,
     humPhase: Math.random() * Math.PI * 2
 }));
 
@@ -111,21 +111,23 @@ function updateLetterFlicker(now) {
             target = 0.1 + Math.random() * 0.2;
         } else if (now >= state.nextGlitchAt) {
             // Trigger a new glitch: a short flicker, occasionally chained
-            // into a quick double-stutter for extra realism.
-            const glitchLength = 60 + Math.random() * 90;
+            // into a quick double-stutter for extra realism. Both the
+            // flicker itself and the gap until the next one are longer/
+            // rarer than before, so letters flicker noticeably less often.
+            const glitchLength = 90 + Math.random() * 130;
             state.glitchUntil = now + glitchLength;
-            state.nextGlitchAt = now + glitchLength + 400 + Math.random() * 3200;
-            if (Math.random() < 0.35) {
+            state.nextGlitchAt = now + glitchLength + 2000 + Math.random() * 7000;
+            if (Math.random() < 0.2) {
                 // Schedule a second quick flicker shortly after this one.
-                state.nextGlitchAt = now + glitchLength + 90 + Math.random() * 60;
+                state.nextGlitchAt = now + glitchLength + 120 + Math.random() * 90;
             }
             target = 0.1 + Math.random() * 0.2;
         }
 
-        // Smoothly ease intensity toward the target rather than snapping,
-        // so both the idle hum and the glitches read as light physically
-        // brightening/dimming rather than instantly toggling.
-        state.intensity += (target - state.intensity) * 0.35;
+        // Smoothly ease intensity toward the target rather than snapping -
+        // a slower easing factor makes each brightness change take longer
+        // to settle, giving the flicker a more gradual, less snappy feel.
+        state.intensity += (target - state.intensity) * 0.18;
     });
 }
 
@@ -275,8 +277,11 @@ function stepSnake() {
 function getThemeColors() {
     const isLevels = document.body.classList.contains('levels-mode');
     return {
-        head: isLevels ? '#7d3f8e' : '#0f5c22',
-        body: isLevels ? '#ba68c8' : '#33d17a',
+        // Dimmer/darker than the main game's snake colors so the glowing
+        // SNAKE lettering reads as the clear visual focal point of the logo,
+        // with the snake itself receding into a more muted supporting role.
+        head: isLevels ? '#4a2652' : '#0a3d17',
+        body: isLevels ? '#7a4687' : '#1f7d4a',
         // Bright, saturated neon-tube color for the SNAKE lettering itself
         // (previously a dim static fill) - the per-letter flicker intensity
         // modulates both this fill's alpha and a matching glow (shadowBlur)
