@@ -161,8 +161,11 @@ function drawHeadDetails(ctx, part, now) {
     ctx.fillStyle = 'white';
     if (state.direction === 'left' || state.direction === 'right') {
         const halfH = (eyeHeight / 2) * openness;
-        // Pupil vertical offset toward the bottom of the eye (less goofy/cross-eyed look).
-        const pupilShift = halfH * 0.4;
+        // Pupil vertical offset toward the bottom of each eye (both the top
+        // eye and the bottom eye get their pupil pushed down within their
+        // own oval - previously the bottom eye's pupil was shifted upward
+        // toward the head's center instead, which looked lopsided/goofy).
+        const pupilShift = halfH * 0.55;
         if (halfH > 0.3) {
             // Horizontal radius stays fixed (eyeWidth/2); vertical radius (halfH)
             // is the one affected by blinking, so the eye closes top-to-bottom
@@ -171,7 +174,7 @@ function drawHeadDetails(ctx, part, now) {
             ctx.beginPath(); ctx.ellipse(eyeX, eyeY2, eyeWidth / 2, halfH, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'black';
             ctx.beginPath(); ctx.ellipse(eyeX, eyeY1 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 - pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(eyeX, eyeY2 + pupilShift, eyeWidth / 4, halfH / 2, 0, 0, Math.PI * 2); ctx.fill();
         } else {
             ctx.strokeStyle = 'white';
             ctx.lineWidth = Math.max(1, gridSize / 18);
