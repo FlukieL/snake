@@ -11,9 +11,10 @@ import {
     playPowerupSound,
     playLevelUpSound,
     playExtraLifeSound,
-    playLoseLifeSound
+    playLoseLifeSound,
+    applyMusicPitchForMode
 } from './audio.js';
-import { renderScoreboard, fetchHighScores } from './leaderboard.js';
+import { renderScoreboard, fetchHighScores, realignVisibleSliders } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
 import {
     resetLevelsState,
@@ -202,6 +203,11 @@ function triggerGameOver() {
     dom.gameMusic.pause();
     dom.finalScore.innerText = state.score;
     dom.gameOverScreen.style.display = 'block';
+    // Re-align the Game Over screen's own scoreboard tab-slider pills now
+    // that the screen is actually visible - they were positioned while
+    // display:none (offsetLeft/offsetWidth measure as 0 then), which left
+    // the active tab looking unselected until the window was resized.
+    requestAnimationFrame(realignVisibleSliders);
     resetSubmitUI();
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
@@ -314,6 +320,7 @@ export function initializeGame(mode) {
     updateLevelBadge();
     updateLivesBadge();
     dom.gameMusic.currentTime = 0;
+    applyMusicPitchForMode();
     if (!state.musicMuted) dom.gameMusic.play().catch(() => {});
     dom.gameMusic.loop = true;
     state.lastTickTime = 0;

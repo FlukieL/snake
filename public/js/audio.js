@@ -121,6 +121,22 @@ export function isGameplayActive() {
     return state.inGame && !state.gamePaused && !state.gameOver;
 }
 
+// Levels Mode plays the same music track at a slightly lower pitch than
+// Classic Mode, giving it a subtly different, moodier feel without needing
+// a separate audio file. `preservesPitch = false` makes changing
+// playbackRate also shift the pitch (rather than time-stretching to keep
+// the original pitch), so a rate < 1 sounds both slower AND lower - like
+// slowing down a tape/record rather than just changing tempo.
+const LEVELS_MUSIC_PLAYBACK_RATE = 0.92; // ~-1.4 semitones lower than Classic
+export function applyMusicPitchForMode() {
+    const rate = state.gameMode === 'levels' ? LEVELS_MUSIC_PLAYBACK_RATE : 1;
+    dom.gameMusic.playbackRate = rate;
+    // Cross-browser property name variants for disabling pitch correction.
+    dom.gameMusic.preservesPitch = false;
+    dom.gameMusic.mozPreservesPitch = false;
+    dom.gameMusic.webkitPreservesPitch = false;
+}
+
 export function toggleMusicMute() {
     state.musicMuted = !state.musicMuted;
     saveState('musicMuted', state.musicMuted);

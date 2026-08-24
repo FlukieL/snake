@@ -214,6 +214,20 @@ function positionSlider(tabsEl, activeBtn) {
     slider.style.width = `${activeBtn.offsetWidth}px`;
 }
 
+// Re-measures and repositions every scoreboard tab-slider pill that's
+// currently visible (offsetLeft/offsetWidth are only meaningful once an
+// element is actually laid out - a slider positioned while its container
+// was display:none collapses to 0 width/left, making the active tab look
+// unselected). Called whenever a previously-hidden screen containing
+// scoreboard tabs becomes visible, e.g. showing the Game Over screen.
+export function realignVisibleSliders() {
+    document.querySelectorAll('.scoreboard-tabs, .mode-tabs').forEach(tabsEl => {
+        if (tabsEl.offsetParent === null) return; // still hidden - skip for now
+        const activeBtn = tabsEl.querySelector('.tab-btn.active, .mode-tab-btn.active');
+        positionSlider(tabsEl, activeBtn);
+    });
+}
+
 export function initLeaderboardTabs() {
     document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
         const targetId = tabsEl.getAttribute('data-target');
