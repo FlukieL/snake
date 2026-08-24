@@ -294,6 +294,17 @@ function getThemeColors() {
     };
 }
 
+// Precomputed list of wall cells grouped by owning letter, built once (not
+// every frame) - avoids re-scanning the whole grid every draw call.
+const WALL_CELLS_BY_LETTER = LETTERS.map(() => []);
+for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+        if (!WALLS[y][x]) continue;
+        const owner = WALL_OWNER[y][x];
+        if (owner >= 0) WALL_CELLS_BY_LETTER[owner].push({ x, y });
+    }
+}
+
 function draw(now) {
     if (!ctx || !canvas) return;
     const colors = getThemeColors();
@@ -304,27 +315,30 @@ function draw(now) {
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    // Draw each letter's wall cells with its own flicker-driven glow: a
-    // wide, soft shadowBlur "halo" behind a brighter core fill, both scaled
-    // by that letter's current intensity - dimmer letters glow less and
-    // fade toward the base color, bright ones glow strongly outward like a
-    // freshly-lit neon tube.
-    for (let y = 0; y < ROWS; y++) {
-        for (let x = 0; x < COLS; x++) {
-            if (!WALLS[y][x]) continue;
-            const owner = WALL_OWNER[y][x];
-            const intensity = owner >= 0 ? letterFlicker[owner].intensity : 1;
-            const px = x * cellSize, py = y * cellSize, size = cellSize - 1;
+    // Draw each letter's wall cells with its own flicker-driven glow. This
+    // is batched per-letter (one shadowBlur/fill pass covering all of that
+    // letter's cells via a single path) rather than per-cell - canvas
+    // shadowBlur is extremely expensive on iOS Safari, and doing it ~30
+    // times per frame (once per wall cell) was a major cause of sluggish
+    // performance on iOS specifically. Batching into just 5 passes (one per
+    // letter) cuts that cost by roughly 6x with an identical visual result.
+    WALL_CELLS_BY_LETTER.forEach((cells, letterIndex) => {
+        if (!cells.length) return;
+        const intensity = letterFlicker[letterIndex].intensity;
 
-            ctx.save();
-            ctx.shadowColor = colors.wallGlow;
-            ctx.shadowBlur = cellSize * (0.35 + intensity * 1.1);
-            ctx.fillStyle = colors.wallGlow;
-            ctx.globalAlpha = 0.35 + intensity * 0.65;
-            ctx.fillRect(px, py, size, size);
-            ctx.restore();
-        }
-    }
+        ctx.save();
+        ctx.shadowColor = colors.wallGlow;
+        ctx.shadowBlur = cellSize * (0.35 + intensity * 1.1);
+        ctx.fillStyle = colors.wallGlow;
+        ctx.globalAlpha = 0.35 + intensity * 0.65;
+        ctx.beginPath();
+        cells.forEach(({ x, y }) => {
+            const px = x * cellSize, py = y * cellSize, size = cellSize - 1;
+            ctx.rect(px, py, size, size);
+        });
+        ctx.fill();
+        ctx.restore();
+    });
 
     if (food) {
         ctx.fillStyle = colors.food;
@@ -370,6 +384,10 @@ export function initLogoAnimation() {
 
     const resize = () => {
         const rect = canvas.getBoundingClientRect();
+        // Guard against a zero-size measurement (can happen momentarily on
+        // iOS Safari if layout/fonts haven't fully settled yet) - skip this
+        // resize rather than computing a bogus/squished cellSize from it.
+        if (rect.width < 1 || rect.height < 1) return;
         const dpr = window.devicePixelRatio || 1;
         canvas.width = Math.round(rect.width * dpr);
         canvas.height = Math.round(rect.height * dpr);
@@ -385,8 +403,30 @@ export function initLogoAnimation() {
         offsetX = (rect.width - cellSize * COLS) / 2;
         offsetY = (rect.height - cellSize * ROWS) / 2;
     };
-    resize();
+
+    // iOS Safari sometimes reports an incorrect (squished) getBoundingClientRect
+    // for the canvas on the very first layout pass - measuring immediately on
+    // script load can capture the container before it's settled into its final
+    // CSS flex-computed size. Deferring the initial measurement across a
+    // couple of animation frames (and re-measuring again shortly after) gives
+    // the layout engine time to finish, so the logo renders at the correct
+    // aspect ratio instead of vertically squished.
+    requestAnimationFrame(() => {
+        requestAnimationFrame(resize);
+    });
+    setTimeout(resize, 300);
+
+    // ResizeObserver catches any further layout shifts (e.g. web font
+    // finishing its load and reflowing the menu, or iOS Safari's dynamic
+    // toolbar changing the viewport height) that a plain window 'resize'
+    // listener would miss, since those don't fire a window-level resize event.
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => resize());
+        observer.observe(canvas);
+    }
+
     window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 
     resetSnake();
     lastStepTime = performance.now();

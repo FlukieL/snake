@@ -27,10 +27,18 @@ function initTouch() {
     document.addEventListener('touchstart', evt => {
         xDown = evt.touches[0].clientX;
         yDown = evt.touches[0].clientY;
-    }, false);
+    }, { passive: true });
 
     document.addEventListener('touchmove', evt => {
         if (!xDown || !yDown) return;
+        // Prevent iOS Safari's default scroll/rubber-band/bounce behavior
+        // from fighting with swipe gestures during gameplay - without this,
+        // the browser tries to scroll the page on every swipe, which is a
+        // major contributor to the sluggish/janky feel reported specifically
+        // on iOS (Android and desktop don't have this same default gesture
+        // conflict). Must use a non-passive listener for preventDefault() to
+        // have any effect.
+        if (state.inGame) evt.preventDefault();
         const xUp = evt.touches[0].clientX;
         const yUp = evt.touches[0].clientY;
         const xDiff = xDown - xUp;
@@ -43,7 +51,7 @@ function initTouch() {
             else { if (state.direction !== 'up') queueDirection('down'); }
         }
         xDown = null; yDown = null;
-    }, false);
+    }, { passive: false });
 }
 
 function initGamepad() {

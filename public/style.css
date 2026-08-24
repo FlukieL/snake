@@ -61,6 +61,17 @@ canvas {
     box-shadow: var(--shadow);
 }
 
+/* Disables the browser's default touch gesture handling (pan/scroll/zoom)
+   on the game canvas specifically - on iOS Safari this lets the compositor
+   skip its scroll-hit-testing machinery for touches on the canvas entirely,
+   rather than only relying on JS preventDefault() in touchmove (which still
+   requires the browser to first determine whether the gesture is
+   scrollable). Meaningfully reduces input lag/jank during swipe-based
+   gameplay on iOS specifically. */
+#gameCanvas {
+    touch-action: none;
+}
+
 /* These screens are plain block-level scroll containers (NOT flex
    containers themselves) - centering is instead handled by the nested
    .screen-inner wrapper below. Combining flex centering directly with
