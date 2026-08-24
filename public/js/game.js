@@ -16,6 +16,7 @@ import {
 } from './audio.js';
 import { renderScoreboard, fetchHighScores, realignVisibleSliders } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
+import { focusFirstMenuItem } from './input.js';
 import {
     resetLevelsState,
     onFruitEatenInLevelsMode,
@@ -209,6 +210,9 @@ function triggerGameOver() {
     // display:none (offsetLeft/offsetWidth measure as 0 then), which left
     // the active tab looking unselected until the window was resized.
     requestAnimationFrame(realignVisibleSliders);
+    // Give keyboard/gamepad navigation an obvious, immediate starting point
+    // on the Game Over screen too, matching the pause screen's behavior.
+    requestAnimationFrame(focusFirstMenuItem);
     resetSubmitUI();
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
@@ -351,10 +355,11 @@ function pauseGame() {
     state.gamePaused = true;
     dom.pauseScreen.style.display = 'block';
     dom.gameMusic.pause();
-    // Focus the Resume button by default so keyboard/gamepad "confirm" (Enter/
-    // gamepad A) immediately resumes, and arrow keys can navigate the rest of
-    // the pause menu's buttons naturally via the browser's native focus order.
-    if (dom.resumeButton) dom.resumeButton.focus();
+    // Focus (and visibly highlight) the first menu item - the Resume
+    // button - so keyboard/gamepad "confirm" immediately resumes, and
+    // arrow keys/D-pad can navigate the rest of the pause menu right away
+    // without an extra keypress first.
+    requestAnimationFrame(focusFirstMenuItem);
 }
 
 function resumeGame() {

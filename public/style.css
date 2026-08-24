@@ -556,12 +556,22 @@ button:disabled:hover {
     margin-bottom: 20px;
 }
 
-/* Visible focus ring for keyboard/gamepad navigation of the pause menu -
-   buttons don't otherwise show a clear "currently selected" state when
-   focused via Tab/arrow-key navigation rather than a mouse hover. */
-#pauseScreen button:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 2px;
+/* Visible, unambiguous highlight for whichever menu button/link currently
+   has keyboard/gamepad focus, across ALL menu screens (main menu, pause,
+   game over) - applied via JS as an explicit class rather than relying
+   purely on the :focus-visible pseudo-class, since browsers are
+   inconsistent about when :focus-visible triggers for focus() calls
+   originating from gamepad-driven navigation (some only show it for
+   keyboard-triggered focus), which was why the "highlighted" button
+   wasn't reliably visible. Applies regardless of *how* focus arrived
+   (keyboard, gamepad, or mouse) for consistent, obvious feedback everywhere.
+   !important guards against being silently overridden by more specific
+   per-button-type rules (e.g. .mute-button, .nokia-toggle-button) below. */
+.menu-focus-visible {
+    outline: 3px solid var(--accent) !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15) !important;
+    z-index: 1;
 }
 
 /* Mute Buttons */

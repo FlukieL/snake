@@ -1,35 +1,94 @@
 // Input handling: keyboard, touch swipe, and gamepad (with haptics),
 // all funneling into the shared `queueDirection` / pause / restart actions.
+// Also provides a unified keyboard/gamepad navigation system for all three
+// menu screens (main menu, pause, game over), with an explicit CSS class
+// for the currently-focused button so it's always clearly visible
+// regardless of how focus arrived (browsers are inconsistent about when
+// the native :focus-visible pseudo-class triggers for gamepad-driven
+// focus() calls, which is why a highlighted button wasn't reliably shown).
 
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { queueDirection, togglePause, initializeGame, startGameSession } from './game.js';
 import { submitCurrentScoreIfNeeded } from './auth.js';
 
-// Returns the pause screen's currently VISIBLE buttons in top-to-bottom
-// order, so arrow-key/gamepad navigation can cycle through them
-// predictably. Filters out hidden buttons (e.g. the Nokia Mode toggle,
-// which is display:none while in Levels Mode) - focus() silently fails on
-// a display:none element, so including it in the list previously caused
-// navigation to get stuck unable to move past/skip over it.
-function getPauseMenuButtons() {
-    if (!dom.pauseScreen) return [];
-    return Array.from(dom.pauseScreen.querySelectorAll('button'))
-        .filter(btn => btn.offsetParent !== null);
+const MENU_FOCUS_CLASS = 'menu-focus-visible';
+
+// Returns whichever menu screen is currently visible, or null if none is
+// (i.e. actively playing). Checked in priority order since more than one
+// screen element can technically be display:block at once during
+// transitions - pause/game-over always take priority over the main menu.
+function getActiveMenuScreen() {
+    if (state.gamePaused && dom.pauseScreen) return dom.pauseScreen;
+    if (state.gameOver && dom.gameOverScreen) return dom.gameOverScreen;
+    if (!state.inGame && dom.startGameScreen) return dom.startGameScreen;
+    return null;
 }
 
-// Moves keyboard/gamepad focus to the next/previous button in the pause
-// menu (wrapping around at either end), so the whole menu is navigable
-// without a mouse/touch - matches the request for the pause menu to be
-// usable via keyboard and controller, not just tap/click.
-function movePauseMenuFocus(delta) {
-    const buttons = getPauseMenuButtons();
-    if (!buttons.length) return;
-    const currentIndex = buttons.indexOf(document.activeElement);
+// Returns all currently-visible, focusable elements (buttons and links)
+// within a given menu screen, in visual top-to-bottom DOM order. Filters
+// out hidden elements (e.g. the Nokia Mode toggle, which is display:none
+// while in Levels Mode) - focus() silently fails on a display:none
+// element, so including one in the list would make navigation get stuck
+// unable to move past/skip over it.
+function getMenuFocusables(screen) {
+    if (!screen) return [];
+    return Array.from(screen.querySelectorAll('button, a[href]'))
+        .filter(el => el.offsetParent !== null);
+}
+
+// Explicitly marks `el` as the visibly-focused menu item (adding our own
+// class alongside the native focus() call), clearing the marker from any
+// previously-focused element first so only one is ever highlighted.
+function setMenuFocus(el) {
+    if (!el) return;
+    document.querySelectorAll('.' + MENU_FOCUS_CLASS).forEach(prev => {
+        if (prev !== el) prev.classList.remove(MENU_FOCUS_CLASS);
+    });
+    el.focus();
+    el.classList.add(MENU_FOCUS_CLASS);
+}
+
+// Focuses the first focusable item in whichever menu screen is currently
+// active. Called whenever a screen becomes visible (game over, pause) so
+// keyboard/gamepad navigation has an obvious, immediate starting point
+// rather than requiring an extra keypress first.
+export function focusFirstMenuItem() {
+    const screen = getActiveMenuScreen();
+    const items = getMenuFocusables(screen);
+    if (items.length) setMenuFocus(items[0]);
+}
+
+// Moves keyboard/gamepad focus to the next/previous focusable item within
+// whichever menu screen is currently active (wrapping around at either
+// end), so every menu is fully navigable without a mouse/touch.
+function moveMenuFocus(delta) {
+    const screen = getActiveMenuScreen();
+    const items = getMenuFocusables(screen);
+    if (!items.length) return;
+    const currentIndex = items.indexOf(document.activeElement);
     const nextIndex = currentIndex === -1
         ? 0
-        : (currentIndex + delta + buttons.length) % buttons.length;
-    buttons[nextIndex].focus();
+        : (currentIndex + delta + items.length) % items.length;
+    setMenuFocus(items[nextIndex]);
+}
+
+// Keeps our explicit focus-highlight class in sync whenever focus moves by
+// any means (mouse click, Tab key, programmatic focus() elsewhere in the
+// app) - not just through moveMenuFocus() above - so the highlight never
+// gets out of sync with the browser's actual focus target.
+function initFocusTracking() {
+    document.addEventListener('focusin', e => {
+        document.querySelectorAll('.' + MENU_FOCUS_CLASS).forEach(prev => {
+            if (prev !== e.target) prev.classList.remove(MENU_FOCUS_CLASS);
+        });
+        if (e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'A')) {
+            e.target.classList.add(MENU_FOCUS_CLASS);
+        }
+    });
+    document.addEventListener('focusout', e => {
+        e.target.classList.remove(MENU_FOCUS_CLASS);
+    });
 }
 
 function initKeyboard() {
@@ -39,17 +98,19 @@ function initKeyboard() {
             return;
         }
 
-        // While paused, arrow keys/WASD navigate the pause menu's buttons
-        // instead of queuing a snake movement (which would have no visible
-        // effect anyway since the game loop is stopped, but previously still
-        // silently queued a direction that would apply the instant the game
-        // resumed - a confusing surprise "instant turn" on resume).
-        if (state.gamePaused) {
+        const activeMenuScreen = getActiveMenuScreen();
+
+        // Whenever any menu screen is showing, arrow keys/WASD navigate its
+        // buttons instead of queuing a snake movement (which would have no
+        // visible effect during a menu anyway, but previously could still
+        // silently queue a direction that applied the instant gameplay
+        // resumed/started - a confusing surprise "instant turn").
+        if (activeMenuScreen) {
             switch (e.key) {
-                case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePauseMenuFocus(-1); break;
-                case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePauseMenuFocus(1); break;
+                case 'ArrowUp': case 'w': case 'W': e.preventDefault(); moveMenuFocus(-1); break;
+                case 'ArrowDown': case 's': case 'S': e.preventDefault(); moveMenuFocus(1); break;
                 case 'Enter': case ' ':
-                    if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+                    if (document.activeElement && (document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A')) {
                         e.preventDefault();
                         document.activeElement.click();
                     }
@@ -121,33 +182,24 @@ function initGamepad() {
         const gamepads = navigator.getGamepads();
         for (const gamepad of gamepads) {
             if (gamepad && gamepad.index in previousGamepadState) {
-                if (gamepad.buttons[0].pressed && !previousGamepadState[gamepad.index].buttons[0]) {
-                    if (state.gameOver) {
-                        dom.gameOverScreen.style.display = 'none';
-                        submitCurrentScoreIfNeeded();
-                        initializeGame();
-                    } else if (getComputedStyle(dom.startGameScreen).display !== 'none') {
-                        startGameSession();
-                    }
-                }
+                const activeMenuScreen = getActiveMenuScreen();
 
-                if (gamepad.buttons[9].pressed && !previousGamepadState[gamepad.index].buttons[9] && !state.gameOver) {
-                    togglePause();
-                }
-
-                if (state.gamePaused) {
-                    // While paused: D-pad/left-stick up/down navigate the pause
-                    // menu's buttons, and A (button 0) activates whichever one
-                    // is currently focused - mirrors the keyboard behavior so
-                    // the pause menu is fully controller-navigable too.
+                if (activeMenuScreen) {
+                    // Any menu screen is showing: D-pad/left-stick up/down
+                    // navigate its buttons, and A (button 0) activates
+                    // whichever one currently has focus - mirrors the
+                    // keyboard behavior so every menu is fully
+                    // controller-navigable too.
                     const upPressed = gamepad.buttons[12].pressed || gamepad.axes[1] < -0.5;
                     const downPressed = gamepad.buttons[13].pressed || gamepad.axes[1] > 0.5;
                     const prevUp = previousGamepadState[gamepad.index].buttons[12] || previousGamepadState[gamepad.index].axisUp;
                     const prevDown = previousGamepadState[gamepad.index].buttons[13] || previousGamepadState[gamepad.index].axisDown;
-                    if (upPressed && !prevUp) movePauseMenuFocus(-1);
-                    if (downPressed && !prevDown) movePauseMenuFocus(1);
+                    if (upPressed && !prevUp) moveMenuFocus(-1);
+                    if (downPressed && !prevDown) moveMenuFocus(1);
                     if (gamepad.buttons[0].pressed && !previousGamepadState[gamepad.index].buttons[0]) {
-                        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && dom.pauseScreen.contains(document.activeElement)) {
+                        if (document.activeElement &&
+                            (document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A') &&
+                            activeMenuScreen.contains(document.activeElement)) {
                             document.activeElement.click();
                         }
                     }
@@ -157,6 +209,10 @@ function initGamepad() {
                         axisDown: gamepad.axes[1] > 0.5
                     };
                     continue;
+                }
+
+                if (gamepad.buttons[9].pressed && !previousGamepadState[gamepad.index].buttons[9] && !state.gameOver) {
+                    togglePause();
                 }
 
                 if (gamepad.buttons[12].pressed && state.direction !== 'down') queueDirection('up');
@@ -179,6 +235,7 @@ function initGamepad() {
 }
 
 export function initInput() {
+    initFocusTracking();
     initKeyboard();
     initTouch();
     initGamepad();
