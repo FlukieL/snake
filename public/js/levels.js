@@ -255,15 +255,30 @@ export function isInvincible() {
     return performance.now() < state.effects.invincibleUntil;
 }
 
-// Returns the current score multiplier as a plain integer (1 = no bonus,
-// 2 = x2, 3 = x3, etc). Automatically resets stacks to 0 once the timer runs
-// out, so isScoreMultiplied()/the flashing render effect stay in sync.
+// Returns the multiplier's display label as a plain integer (1 = no bonus,
+// 2 = "x2", 3 = "x3", etc) - used purely for the on-screen badge text.
+// Automatically resets stacks to 0 once the timer runs out, so
+// isScoreMultiplied()/the flashing render effect stay in sync.
 export function getMultiplierValue() {
     if (performance.now() >= state.effects.multiplierUntil) {
         state.effects.multiplierStacks = 0;
         return 1;
     }
     return 1 + state.effects.multiplierStacks;
+}
+
+// Returns the actual number of points a fruit is worth right now. Each
+// stack collected genuinely multiplies/compounds the bonus rather than just
+// incrementing the label by one: the 1st multiplier (shown as "x2") is
+// worth 2 points, the 2nd stack ("x3") is worth 4, the 3rd ("x4") is worth 6,
+// and so on - i.e. 2 points per stack collected, growing every time another
+// multiplier is picked up while one is already active.
+export function getMultiplierPoints() {
+    if (performance.now() >= state.effects.multiplierUntil) {
+        state.effects.multiplierStacks = 0;
+        return 1;
+    }
+    return 2 * state.effects.multiplierStacks;
 }
 
 export function isScoreMultiplied() {
