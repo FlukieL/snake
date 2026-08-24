@@ -152,6 +152,11 @@ function isOccupied(x, y, safeCorridor) {
     if (state.snake.some(s => s.x === x && s.y === y)) return true;
     if (state.food.x === x && state.food.y === y) return true;
     if (state.obstacles.some(o => o.x === x && o.y === y)) return true;
+    // Also treat any currently active (uncollected) power-up as occupied -
+    // without this, a new obstacle wall generated on level-up could spawn
+    // directly on top of a power-up that's still sitting on the board,
+    // making it impossible to reach/collect.
+    if (state.activePowerup && state.activePowerup.x === x && state.activePowerup.y === y) return true;
     // Keep a small safe zone around the snake's starting position.
     if (Math.abs(x - 10) <= 1 && Math.abs(y - 10) <= 1) return true;
     // Never place an obstacle directly in the snake's immediate path.
