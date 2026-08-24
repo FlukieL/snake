@@ -396,6 +396,19 @@ export function exitToMainMenuFromPause(submitCurrentScoreIfNeeded) {
 
 export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     state.inGame = false;
+    // Must reset gameOver/gamePaused here too (not just inGame) - both
+    // exitToMainMenuFromPause() and the Game Over screen's "Main Menu"
+    // button call into this function without clearing state.gameOver
+    // (the latter never touches it at all), so it was staying `true`
+    // indefinitely after returning to the main menu. getActiveMenuScreen()
+    // in input.js checks state.gameOver BEFORE falling through to the main
+    // menu screen, so it kept incorrectly resolving to the now-hidden Game
+    // Over screen (which has no visible focusable buttons) - silently
+    // breaking keyboard/gamepad navigation until a full page refresh reset
+    // state fresh. Resetting both flags here guarantees a consistent,
+    // correct state no matter which path led back to the main menu.
+    state.gameOver = false;
+    state.gamePaused = false;
     // Restore the theme to match whichever mode tab is currently selected on
     // the main menu (defaults to Classic), rather than assuming Classic.
     const activeModeTabBtn = document.querySelector('.mode-tab-btn.active');
