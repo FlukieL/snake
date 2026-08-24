@@ -415,4 +415,15 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
     if (dom.multiplierBadge) dom.multiplierBadge.style.display = 'none';
+
+    // Give keyboard/gamepad navigation an obvious, immediate starting point
+    // on the main menu too - without this, focus was left on whatever
+    // button had just been clicked (e.g. "Main Menu" on the Game Over
+    // screen, now hidden), and browsers are inconsistent/sometimes delayed
+    // about automatically blurring focus away from an element that just
+    // became display:none. That inconsistency was the root cause of
+    // navigation intermittently appearing to "stop working" after
+    // returning to the main menu - the first arrow-key press's focus
+    // calculation could be based on a stale, no-longer-visible element.
+    requestAnimationFrame(focusFirstMenuItem);
 }
