@@ -6,12 +6,53 @@ import { state } from './state.js';
 import { queueDirection, togglePause, initializeGame, startGameSession } from './game.js';
 import { submitCurrentScoreIfNeeded } from './auth.js';
 
+// Returns the pause screen's buttons in visual top-to-bottom order, so
+// arrow-key/gamepad navigation can cycle through them predictably.
+function getPauseMenuButtons() {
+    if (!dom.pauseScreen) return [];
+    return Array.from(dom.pauseScreen.querySelectorAll('button'));
+}
+
+// Moves keyboard/gamepad focus to the next/previous button in the pause
+// menu (wrapping around at either end), so the whole menu is navigable
+// without a mouse/touch - matches the request for the pause menu to be
+// usable via keyboard and controller, not just tap/click.
+function movePauseMenuFocus(delta) {
+    const buttons = getPauseMenuButtons();
+    if (!buttons.length) return;
+    const currentIndex = buttons.indexOf(document.activeElement);
+    const nextIndex = currentIndex === -1
+        ? 0
+        : (currentIndex + delta + buttons.length) % buttons.length;
+    buttons[nextIndex].focus();
+}
+
 function initKeyboard() {
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && !state.gameOver) {
             togglePause();
             return;
         }
+
+        // While paused, arrow keys/WASD navigate the pause menu's buttons
+        // instead of queuing a snake movement (which would have no visible
+        // effect anyway since the game loop is stopped, but previously still
+        // silently queued a direction that would apply the instant the game
+        // resumed - a confusing surprise "instant turn" on resume).
+        if (state.gamePaused) {
+            switch (e.key) {
+                case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePauseMenuFocus(-1); break;
+                case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePauseMenuFocus(1); break;
+                case 'Enter': case ' ':
+                    if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+                        e.preventDefault();
+                        document.activeElement.click();
+                    }
+                    break;
+            }
+            return;
+        }
+
         switch (e.key) {
             case 'ArrowUp': case 'w': case 'W': queueDirection('up'); break;
             case 'ArrowDown': case 's': case 'S': queueDirection('down'); break;
@@ -87,6 +128,30 @@ function initGamepad() {
 
                 if (gamepad.buttons[9].pressed && !previousGamepadState[gamepad.index].buttons[9] && !state.gameOver) {
                     togglePause();
+                }
+
+                if (state.gamePaused) {
+                    // While paused: D-pad/left-stick up/down navigate the pause
+                    // menu's buttons, and A (button 0) activates whichever one
+                    // is currently focused - mirrors the keyboard behavior so
+                    // the pause menu is fully controller-navigable too.
+                    const upPressed = gamepad.buttons[12].pressed || gamepad.axes[1] < -0.5;
+                    const downPressed = gamepad.buttons[13].pressed || gamepad.axes[1] > 0.5;
+                    const prevUp = previousGamepadState[gamepad.index].buttons[12] || previousGamepadState[gamepad.index].axisUp;
+                    const prevDown = previousGamepadState[gamepad.index].buttons[13] || previousGamepadState[gamepad.index].axisDown;
+                    if (upPressed && !prevUp) movePauseMenuFocus(-1);
+                    if (downPressed && !prevDown) movePauseMenuFocus(1);
+                    if (gamepad.buttons[0].pressed && !previousGamepadState[gamepad.index].buttons[0]) {
+                        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && dom.pauseScreen.contains(document.activeElement)) {
+                            document.activeElement.click();
+                        }
+                    }
+                    previousGamepadState[gamepad.index] = {
+                        buttons: gamepad.buttons.map(b => b.pressed),
+                        axisUp: gamepad.axes[1] < -0.5,
+                        axisDown: gamepad.axes[1] > 0.5
+                    };
+                    continue;
                 }
 
                 if (gamepad.buttons[12].pressed && state.direction !== 'down') queueDirection('up');

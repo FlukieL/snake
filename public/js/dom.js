@@ -38,6 +38,7 @@ export const dom = {
     gameMusic: new Audio('/SnakeGameMusic.mp3'),
 
     pauseButton: document.getElementById('pauseButton'),
+    resumeButton: document.getElementById('resumeButton'),
     mainMenuButton: document.getElementById('mainMenuButton'),
     mainMenuPauseButton: document.getElementById('mainMenuPauseButton'),
 

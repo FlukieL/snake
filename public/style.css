@@ -556,6 +556,14 @@ button:disabled:hover {
     margin-bottom: 20px;
 }
 
+/* Visible focus ring for keyboard/gamepad navigation of the pause menu -
+   buttons don't otherwise show a clear "currently selected" state when
+   focused via Tab/arrow-key navigation rather than a mouse hover. */
+#pauseScreen button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+}
+
 /* Mute Buttons */
 .mute-button {
     background-color: rgba(255, 255, 255, 0.1);
@@ -589,6 +597,32 @@ button:disabled:hover {
     display: none;
     z-index: 10;
     letter-spacing: 0.02em;
+}
+
+/* On phones in landscape orientation, the square game board is vertically
+   centered and only as tall as the (limited) viewport height, leaving wide
+   empty margins on either side - but the score counter was still centered
+   horizontally on the full screen, so it floated directly on top of the
+   board's top edge. Move it into the left margin instead so it no longer
+   overlaps the game board. Constrained to short/landscape phone viewports
+   specifically (not tablets/desktop, which have enough vertical room that
+   the board doesn't shrink down to conflict with it). */
+@media (orientation: landscape) and (max-height: 500px) {
+    #scoreCounter {
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .animateScore {
+        animation: scoreAnimationLandscape 0.3s ease-in-out;
+    }
+}
+
+@keyframes scoreAnimationLandscape {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.25); color: var(--accent); }
+    100% { transform: translateY(-50%) scale(1); }
 }
 
 .animateScore {

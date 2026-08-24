@@ -40,6 +40,13 @@ function initMenuButtons() {
 
     dom.pauseButton.addEventListener('click', togglePause);
 
+    // Resuming is done exclusively via the pause screen's own "Resume"
+    // button now (rather than the floating top-right button toggling its
+    // own label), so there's a single unambiguous way to unpause.
+    if (dom.resumeButton) {
+        dom.resumeButton.addEventListener('click', togglePause);
+    }
+
     dom.mainMenuButton.addEventListener('click', () => {
         returnToMainMenu(submitCurrentScoreIfNeeded);
     });

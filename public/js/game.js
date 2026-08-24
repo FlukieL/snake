@@ -329,16 +329,40 @@ export function initializeGame(mode) {
     requestAnimationFrame(gameLoop);
 }
 
+// The floating top-right button always reads "Pause" - it only ever opens
+// the pause screen, never toggles state itself. Resuming is handled
+// exclusively by the pause screen's own "Resume" button (see resumeGame()
+// below), so there's a single source of truth for the pause/resume text
+// and no risk of the two falling out of sync (previously this button's
+// label toggled between "Pause"/"Resume" based on state.gamePaused, but
+// since it was also reachable via keyboard/gamepad shortcuts that could
+// change state.gamePaused without updating dom.pauseButton, the label
+// could end up showing "Resume" while the game was not actually paused).
 export function togglePause() {
-    state.gamePaused = !state.gamePaused;
-    dom.pauseButton.textContent = state.gamePaused ? 'Resume' : 'Pause';
-    dom.pauseScreen.style.display = state.gamePaused ? 'block' : 'none';
     if (state.gamePaused) {
-        dom.gameMusic.pause();
+        resumeGame();
     } else {
-        if (!state.musicMuted) dom.gameMusic.play().catch(() => {});
-        requestAnimationFrame(gameLoop);
+        pauseGame();
     }
+}
+
+function pauseGame() {
+    if (state.gamePaused) return;
+    state.gamePaused = true;
+    dom.pauseScreen.style.display = 'block';
+    dom.gameMusic.pause();
+    // Focus the Resume button by default so keyboard/gamepad "confirm" (Enter/
+    // gamepad A) immediately resumes, and arrow keys can navigate the rest of
+    // the pause menu's buttons naturally via the browser's native focus order.
+    if (dom.resumeButton) dom.resumeButton.focus();
+}
+
+function resumeGame() {
+    if (!state.gamePaused) return;
+    state.gamePaused = false;
+    dom.pauseScreen.style.display = 'none';
+    if (!state.musicMuted) dom.gameMusic.play().catch(() => {});
+    requestAnimationFrame(gameLoop);
 }
 
 export function startGameSession(mode) {
