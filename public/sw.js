@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v44';
+const CACHE_VERSION = 'v45';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -18,6 +18,7 @@ const APP_SHELL = [
     '/js/state.js',
     '/js/dom.js',
     '/js/storage.js',
+    '/js/offline.js',
     '/js/ui.js',
     '/js/audio.js',
     '/js/nokiaMode.js',
@@ -71,6 +72,20 @@ function isAppShellRequest(url) {
 
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
+
+    // Let the browser handle cross-origin requests (Google Sign-In script,
+    // Google Fonts, etc.) entirely natively - don't intercept them at all.
+    // These are third-party resources this service worker has no business
+    // trying to cache-manage, and attempting to (particularly opaque
+    // cross-origin responses, which can't be inspected/validated the same
+    // way as same-origin ones) previously risked misbehaving while offline
+    // rather than just cleanly failing the way an un-intercepted request
+    // would. The app already tolerates these failing offline (Google
+    // Sign-In simply doesn't render - see auth.js), so there's no need for
+    // this service worker to be involved with them at all.
+    if (url.origin !== self.location.origin) {
+        return;
+    }
 
     // Never cache the leaderboard API - always hit the network for live data.
     if (url.pathname.startsWith('/api/')) {

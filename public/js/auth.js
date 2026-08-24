@@ -5,9 +5,18 @@
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
 import { refreshAfterSubmit } from './leaderboard.js';
+import { isOnline, onConnectivityChange } from './offline.js';
 
 export function resetSubmitUI() {
     state.scoreSubmitted = false;
+    // While offline, submission is impossible regardless of sign-in status -
+    // disable the button and make that clear, rather than letting the
+    // player tap "Submit Score" only to hit a network error.
+    if (!isOnline()) {
+        dom.submitScoreButton.disabled = true;
+        dom.submitScoreButton.textContent = 'Offline - can\'t submit';
+        return;
+    }
     dom.submitScoreButton.disabled = !state.googleIdToken;
     dom.submitScoreButton.textContent = state.googleIdToken ? 'Submit Score' : 'Sign in with Google to submit';
 }
@@ -53,6 +62,7 @@ async function submitScore(scoreValue) {
 export function submitCurrentScoreIfNeeded() {
     if (state.scoreSubmitted || state.score <= 0) return;
     if (!state.googleIdToken) return; // can't submit without a verified identity
+    if (!isOnline()) return; // no point attempting a submission that's certain to fail
     state.scoreSubmitted = true;
     submitScore(state.score);
 }
@@ -81,12 +91,23 @@ function handleGoogleCredential(response) {
     }
 }
 
+let googleSignInRendered = false;
+
 function initGoogleSignIn() {
+    // While offline, there's no point polling for the Google script (it's
+    // an external, cross-origin resource that will never load without a
+    // network connection) - wait for connectivity instead of retrying on a
+    // timer indefinitely. onConnectivityChange (registered in initAuth)
+    // re-triggers this the moment we're back online.
+    if (!isOnline()) return;
+
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
         // Google script may not have loaded yet - retry shortly.
         setTimeout(initGoogleSignIn, 300);
         return;
     }
+    if (googleSignInRendered) return; // already rendered - avoid duplicating the button
+    googleSignInRendered = true;
     window.google.accounts.id.initialize({
         client_id: constants.GOOGLE_CLIENT_ID,
         callback: handleGoogleCredential,
@@ -107,5 +128,13 @@ export function initAuth() {
         submitCurrentScoreIfNeeded();
         dom.submitScoreButton.disabled = true;
         dom.submitScoreButton.textContent = 'Submitted';
+    });
+
+    // Whenever connectivity changes, refresh the submit button's
+    // enabled/disabled state and label (see resetSubmitUI), and retry
+    // rendering the Google Sign-In button if it hasn't loaded yet.
+    onConnectivityChange((online) => {
+        resetSubmitUI();
+        if (online) initGoogleSignIn();
     });
 }

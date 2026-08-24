@@ -133,6 +133,10 @@ export const state = {
     effectsMuted: false,
     nokiaMode: false,
 
+    // True/false once initOfflineDetection() runs (see offline.js) - starts
+    // as true so nothing is prematurely blocked before that init call.
+    isOnline: true,
+
     googleIdToken: null,
     googleDisplayName: null,
 

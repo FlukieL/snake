@@ -4,6 +4,7 @@
 
 import { dom } from './dom.js';
 import { state } from './state.js';
+import { initOfflineDetection } from './offline.js';
 import { initAudioControls } from './audio.js';
 import { initNokiaMode } from './nokiaMode.js';
 import { initLeaderboard } from './leaderboard.js';
@@ -131,6 +132,10 @@ function initServiceWorker() {
 }
 
 function init() {
+    // Must run first - other modules (leaderboard.js, auth.js) check
+    // state.isOnline during their own init to decide whether to attempt
+    // network requests at all.
+    initOfflineDetection();
     initAudioControls();
     initNokiaMode();
     initLeaderboard();

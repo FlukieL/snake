@@ -51,5 +51,7 @@ export const dom = {
 
     nokiaModeButton: document.getElementById('nokiaModeButton'),
     nokiaModePauseButton: document.getElementById('nokiaModePauseButton'),
-    nokiaAsciiLogo: document.getElementById('nokiaAsciiLogo')
+    nokiaAsciiLogo: document.getElementById('nokiaAsciiLogo'),
+
+    offlineBanner: document.getElementById('offlineBanner')
 };

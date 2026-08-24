@@ -6,6 +6,7 @@
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
 import { loadCachedHighScores, saveCachedHighScores } from './storage.js';
+import { isOnline, onConnectivityChange } from './offline.js';
 
 state.cachedScoresByPeriod = {
     alltime: loadCachedHighScores('classic_alltime'),
@@ -161,19 +162,36 @@ function listElementsFor(mode) {
 export async function fetchHighScores(period, mode) {
     mode = mode || 'classic';
     const cache = cacheFor(mode);
-    try {
-        const res = await fetch(`/api/scores?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}`);
-        if (!res.ok) throw new Error('Bad response');
-        const data = await res.json();
-        cache[period] = data.scores || [];
-        saveCachedHighScores(`${mode}_${period}`, cache[period]);
-    } catch (err) {
-        // Fall back to whatever we have cached locally for this period
+    // Skip the network attempt entirely while offline - there's no point
+    // waiting on a fetch that's certain to fail, and this avoids an
+    // unnecessary delay/console error on every scoreboard render while
+    // offline. Falls straight through to rendering whatever's cached.
+    if (isOnline()) {
+        try {
+            const res = await fetch(`/api/scores?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}`);
+            if (!res.ok) throw new Error('Bad response');
+            const data = await res.json();
+            cache[period] = data.scores || [];
+            saveCachedHighScores(`${mode}_${period}`, cache[period]);
+        } catch (err) {
+            // Fall back to whatever we have cached locally for this period
+        }
     }
     const active = activePeriodFor(mode);
     const els = listElementsFor(mode);
     if (active[els.homeKey] === period) renderScoreboard(els.home, cache[period], mode);
     if (active[els.gameOverKey] === period) renderScoreboard(els.gameOver, cache[period], mode);
+}
+
+// Re-fetches every leaderboard/period combination the moment connectivity
+// is restored, so the scoreboard catches up with any scores submitted by
+// other players while this device was offline, without requiring the
+// player to manually switch tabs or restart the game.
+function refetchAllOnReconnect() {
+    fetchHighScores('alltime', 'classic');
+    fetchHighScores('weekly', 'classic');
+    fetchHighScores('alltime', 'levels');
+    fetchHighScores('weekly', 'levels');
 }
 
 export function refreshAfterSubmit(newScores, mode) {
@@ -320,4 +338,8 @@ export function initLeaderboard() {
     fetchHighScores('weekly', 'classic');
     fetchHighScores('alltime', 'levels');
     fetchHighScores('weekly', 'levels');
+
+    onConnectivityChange((online) => {
+        if (online) refetchAllOnReconnect();
+    });
 }
