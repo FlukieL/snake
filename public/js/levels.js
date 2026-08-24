@@ -10,6 +10,7 @@ export function resetLevelsState() {
     state.permanentSlowdown = 0;
     state.tickInterval = 1000 / constants.LEVEL_BASE_TICK_RATE;
     state.obstacles = [];
+    state.upcomingObstacles = [];
     state.activePowerup = null;
     state.lastPowerupSpawnAttempt = performance.now();
     state.effects.multiplierUntil = 0;
@@ -167,7 +168,10 @@ function isOccupied(x, y, safeCorridor) {
 // Generates a small "L-shaped" (or straight, as a simpler fallback) cluster
 // of 3-5 obstacle cells starting from an anchor point, so walls read as
 // distinct rock formations rather than randomly scattered single blocks.
-function buildLShapeCluster(anchorX, anchorY, safeCorridor) {
+// `existingCells` lets the caller pass in an accumulator array (e.g. when
+// building a preview layout) so clusters avoid overlapping cells already
+// placed in this same generation pass, not just state.obstacles.
+function buildLShapeCluster(anchorX, anchorY, safeCorridor, existingCells) {
     const cluster = [];
     const armLength = 2 + Math.floor(Math.random() * 2); // 2-3 cells per arm
     const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -176,10 +180,14 @@ function buildLShapeCluster(anchorX, anchorY, safeCorridor) {
     const perpendicular = dirA[0] !== 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
     const dirB = perpendicular[Math.floor(Math.random() * perpendicular.length)];
 
+    const isTaken = (x, y) =>
+        isOccupied(x, y, safeCorridor) ||
+        cluster.some(c => c.x === x && c.y === y) ||
+        (existingCells && existingCells.some(c => c.x === x && c.y === y));
+
     let x = anchorX, y = anchorY;
     for (let i = 0; i < armLength; i++) {
-        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isOccupied(x, y, safeCorridor) &&
-            !cluster.some(c => c.x === x && c.y === y)) {
+        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isTaken(x, y)) {
             cluster.push({ x, y });
         }
         x += dirA[0];
@@ -190,51 +198,95 @@ function buildLShapeCluster(anchorX, anchorY, safeCorridor) {
     for (let i = 0; i < armLength; i++) {
         x += dirB[0];
         y += dirB[1];
-        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isOccupied(x, y, safeCorridor) &&
-            !cluster.some(c => c.x === x && c.y === y)) {
+        if (x >= 0 && x < state.cellCount && y >= 0 && y < state.cellCount && !isTaken(x, y)) {
             cluster.push({ x, y });
         }
     }
     return cluster;
 }
 
-// Regenerates the full obstacle layout for the current level as a handful of
-// L-shaped clusters (rather than many scattered single blocks), placed away
-// from the snake's current position. Called only on level-up / game start,
-// so obstacle layout stays stable and predictable during a level instead of
-// shifting on every fruit eaten.
-function updateObstaclesForLevel() {
-    state.obstacles = [];
-    if (state.level < constants.OBSTACLES_START_LEVEL) return;
-
-    const extraLevels = state.level - constants.OBSTACLES_START_LEVEL + 1;
-    const targetCount = Math.min(constants.MAX_OBSTACLES, extraLevels * constants.OBSTACLES_PER_LEVEL);
+// Computes an obstacle layout (array of {x,y}) for a given target count, as
+// a handful of L-shaped clusters placed away from the snake's current
+// position. Pure/non-mutating - does NOT touch state.obstacles - so it can
+// be reused both to build the real layout (updateObstaclesForLevel) and a
+// ghost preview of the next level's layout (computeUpcomingObstacles)
+// without them interfering with each other.
+function generateObstacleLayout(targetCount) {
+    const layout = [];
+    if (targetCount <= 0) return layout;
     const safeCorridor = getSafeCorridorCells();
 
     let attempts = 0;
-    while (state.obstacles.length < targetCount && attempts < 60) {
+    while (layout.length < targetCount && attempts < 60) {
         attempts++;
         const x = Math.floor(Math.random() * state.cellCount);
         const y = Math.floor(Math.random() * state.cellCount);
         if (distanceFromHead(x, y) < MIN_DISTANCE_FROM_SNAKE) continue;
         if (isOccupied(x, y, safeCorridor)) continue;
+        if (layout.some(c => c.x === x && c.y === y)) continue;
 
-        const cluster = buildLShapeCluster(x, y, safeCorridor);
+        const cluster = buildLShapeCluster(x, y, safeCorridor, layout);
         for (const cell of cluster) {
-            if (state.obstacles.length >= targetCount) break;
-            if (!state.obstacles.some(o => o.x === cell.x && o.y === cell.y)) {
-                state.obstacles.push(cell);
+            if (layout.length >= targetCount) break;
+            if (!layout.some(c => c.x === cell.x && c.y === cell.y)) {
+                layout.push(cell);
             }
         }
     }
+    return layout;
+}
+
+// Regenerates the full obstacle layout for the current level and applies it
+// immediately to state.obstacles. Called only on level-up / game start, so
+// obstacle layout stays stable and predictable during a level instead of
+// shifting on every fruit eaten. Also clears any stale ghost preview, since
+// it's now been superseded by the real thing.
+function updateObstaclesForLevel() {
+    state.obstacles = obstacleCountTargetForLevel(state.level) > 0
+        ? generateObstacleLayout(obstacleCountTargetForLevel(state.level))
+        : [];
+    state.upcomingObstacles = [];
+}
+
+// Returns how many obstacle cells the given level should have, following
+// the same OBSTACLES_START_LEVEL/OBSTACLES_PER_LEVEL/MAX_OBSTACLES rules
+// used previously inline in updateObstaclesForLevel.
+function obstacleCountTargetForLevel(level) {
+    if (level < constants.OBSTACLES_START_LEVEL) return 0;
+    const extraLevels = level - constants.OBSTACLES_START_LEVEL + 1;
+    return Math.min(constants.MAX_OBSTACLES, extraLevels * constants.OBSTACLES_PER_LEVEL);
+}
+
+// Computes a ghost preview of what the NEXT level's obstacle layout will
+// look like, storing it in state.upcomingObstacles for the renderer to draw
+// as a translucent overlay - without touching the real state.obstacles at
+// all. Called once fruitsEatenThisLevel reaches FRUITS_PER_LEVEL - 1 (i.e.
+// exactly one fruit away from leveling up), so new walls never just pop
+// into existence with no warning.
+export function computeUpcomingObstacles() {
+    if (state.gameMode !== 'levels') return;
+    if (state.upcomingObstacles.length > 0) return; // already computed for this upcoming level-up
+    const nextLevel = state.level + 1;
+    const targetCount = obstacleCountTargetForLevel(nextLevel);
+    state.upcomingObstacles = targetCount > 0 ? generateObstacleLayout(targetCount) : [];
 }
 
 // Call after a fruit is eaten while in Levels Mode. Returns true if the level advanced.
 // Note: obstacles are NOT regenerated on every fruit - only on level-up - so
 // the wall layout stays stable and predictable while playing through a level.
+// One fruit before advancing, a ghost preview of the next level's layout is
+// computed (via computeUpcomingObstacles, called from game.js) so new walls
+// are always telegraphed in advance rather than appearing with no warning.
 export function onFruitEatenInLevelsMode() {
     if (state.gameMode !== 'levels') return false;
     state.fruitsEatenThisLevel++;
+
+    // Exactly one fruit away from leveling up - compute the ghost preview
+    // now so it's ready to render well before the actual level-up happens.
+    if (state.fruitsEatenThisLevel === constants.FRUITS_PER_LEVEL - 1) {
+        computeUpcomingObstacles();
+    }
+
     if (state.fruitsEatenThisLevel >= constants.FRUITS_PER_LEVEL) {
         state.level++;
         state.fruitsEatenThisLevel = 0;
@@ -244,7 +296,15 @@ export function onFruitEatenInLevelsMode() {
         // instead of staying permanently crippled by earlier slowdowns.
         state.permanentSlowdown = Math.max(0, state.permanentSlowdown - constants.LEVEL_SLOWDOWN_DECAY);
         recomputeTickInterval();
-        updateObstaclesForLevel();
+        // If a ghost preview was already computed for this upcoming level,
+        // reuse it as the real layout instead of generating a brand new one -
+        // this guarantees what the player saw as a preview is exactly what
+        // they get, rather than the preview being replaced by a different
+        // random layout at the last moment.
+        state.obstacles = state.upcomingObstacles.length > 0
+            ? state.upcomingObstacles
+            : generateObstacleLayout(obstacleCountTargetForLevel(state.level));
+        state.upcomingObstacles = [];
         return true;
     }
     return false;

@@ -154,6 +154,10 @@ export const state = {
     // never decreases for the rest of the run.
     permanentSlowdown: 0,
     obstacles: [], // array of { x, y }
+    // Ghost preview of the NEXT level's obstacle layout, shown starting one
+    // fruit before the level actually advances so new walls never just
+    // "pop up" with no warning. Empty when there's nothing to preview.
+    upcomingObstacles: [],
     lives: 3,
     nextExtraLifeAt: 30, // score threshold at which the next extra life is awarded
     nextExtraLifeIncrement: 30, // how much the threshold increases by each time (grows by EXTRA_LIFE_INCREMENT_STEP)

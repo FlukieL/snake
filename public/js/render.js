@@ -442,6 +442,32 @@ function drawObstacles(ctx) {
     ctx.restore();
 }
 
+// One fruit before advancing to the next level, a translucent "ghost"
+// preview of where the next level's obstacle walls will appear is drawn
+// over the board - a gently pulsing dashed outline rather than a solid
+// fill, so it's clearly readable as a preview/warning and not mistaken for
+// an already-solid obstacle the snake would collide with.
+function drawUpcomingObstaclesPreview(ctx, now) {
+    if (state.gameMode !== 'levels' || !state.upcomingObstacles.length) return;
+    const gridSize = state.gridSize;
+    const pad = Math.max(1, gridSize * 0.06);
+    const pulse = 0.35 + Math.sin(now / 260) * 0.15; // gentle breathing effect
+
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = constants.OBSTACLE_COLOR;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = Math.max(1, gridSize * 0.04);
+    ctx.setLineDash([gridSize * 0.12, gridSize * 0.1]);
+    for (const o of state.upcomingObstacles) {
+        const x = o.x * gridSize + pad, y = o.y * gridSize + pad;
+        const size = gridSize - pad * 2;
+        drawRoundedRect(ctx, x, y, size, size, gridSize * 0.12);
+        drawRoundedRectStroke(ctx, x, y, size, size, gridSize * 0.12);
+    }
+    ctx.restore();
+}
+
 function drawPowerup(ctx, now) {
     if (state.gameMode !== 'levels' || !state.activePowerup) return;
     const gridSize = state.gridSize;
@@ -509,6 +535,7 @@ export function draw(t) {
     }
 
     drawObstacles(ctx);
+    drawUpcomingObstaclesPreview(ctx, now);
 
     const activeWaves = updateAndGetActiveWaves(state.snake.length - 1, now);
     let headPos = null;
