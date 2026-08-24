@@ -906,6 +906,35 @@ body.nokia-mode .creator-info {
     letter-spacing: 2px;
 }
 
+/* Score multiplier badge ("x2", "x3", etc), shown next to the score counter
+   while a multiplier power-up is active. Its opacity is driven every frame
+   from JS (game.js) to flash faster and faster as the remaining time runs
+   out, giving a clear urgency cue right before it expires. */
+#multiplierBadge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(calc(-50% + 90px));
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a1a1a;
+    background: #ffd54f;
+    padding: 6px 14px;
+    border-radius: 10px;
+    z-index: 10;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 12px rgba(255, 213, 79, 0.5);
+}
+
+@media (max-width: 768px) {
+    #multiplierBadge {
+        top: 14px;
+        transform: translateX(calc(-50% + 72px));
+        font-size: 18px;
+        padding: 5px 11px;
+    }
+}
+
 /* Power-up info button (shown in the Levels Mode menu panel) */
 .powerup-info-button {
     background-color: rgba(255, 255, 255, 0.1);

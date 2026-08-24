@@ -21,6 +21,7 @@ import {
     checkObstacleCollision,
     isInvincible,
     getMultiplierValue,
+    extendMultiplierOnFruitEaten,
     maybeSpawnPowerup,
     collectPowerupIfPresent,
     checkForExtraLife,
@@ -50,6 +51,21 @@ function updateLivesBadge() {
     } else if (dom.livesBadge) {
         dom.livesBadge.style.display = 'none';
     }
+}
+
+// Shows/hides the "xN" multiplier badge next to the score counter, and sets
+// a CSS custom property with the remaining flash duration so the badge's
+// flash animation speeds up as the multiplier's timer runs down (rendered
+// in render.js/CSS - this just keeps the badge's own pulse roughly matched).
+function updateMultiplierBadge() {
+    if (!dom.multiplierBadge) return;
+    if (state.gameMode !== 'levels' || performance.now() >= state.effects.multiplierUntil) {
+        dom.multiplierBadge.style.display = 'none';
+        return;
+    }
+    const multiplier = getMultiplierValue();
+    dom.multiplierBadge.textContent = `\u00d7${multiplier}`;
+    dom.multiplierBadge.style.display = 'block';
 }
 
 export function generateFood() {
@@ -125,6 +141,7 @@ function update() {
     const collected = collectPowerupIfPresent(head);
     if (collected) {
         playPowerupSound();
+        if (collected.type === 'multiplier') updateMultiplierBadge();
     }
 
     if (head.x === state.food.x && head.y === state.food.y) {
@@ -134,6 +151,11 @@ function update() {
         dom.scoreCounter.classList.add('animateScore');
         playEatSound();
         triggerDigestionWave(state.food.type);
+        // Eating fruit while a multiplier is active refreshes its timer back
+        // to the full duration, so keeping up a good streak of eating keeps
+        // the bonus going rather than it always expiring after a flat 10s.
+        extendMultiplierOnFruitEaten();
+        updateMultiplierBadge();
 
         const gotExtraLife = checkForExtraLife();
         if (gotExtraLife) {
@@ -170,6 +192,7 @@ function triggerGameOver() {
     resetSubmitUI();
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
+    if (dom.multiplierBadge) dom.multiplierBadge.style.display = 'none';
 
     const classicScoreboard = document.querySelector('[data-scoreboard="classic"]');
     const levelsScoreboard = document.querySelector('[data-scoreboard="levels"]');
@@ -194,6 +217,25 @@ function triggerGameOver() {
     }
 }
 
+// Updates the multiplier badge's flash speed every frame, independent of the
+// game tick rate: the badge pulses faster and faster as the multiplier's
+// remaining time runs out, giving a clear "urgency" cue right before it
+// expires, rather than a constant flash rate throughout.
+function updateMultiplierBadgeFlash(now) {
+    if (!dom.multiplierBadge || dom.multiplierBadge.style.display === 'none') return;
+    const remaining = state.effects.multiplierUntil - now;
+    if (remaining <= 0) {
+        dom.multiplierBadge.style.display = 'none';
+        return;
+    }
+    // Flash period scales from ~900ms (calm) down to ~180ms (urgent) as the
+    // remaining time shrinks from the full duration down to 0.
+    const fraction = Math.min(1, remaining / constants.MULTIPLIER_DURATION);
+    const period = 180 + fraction * 720;
+    const pulse = 0.55 + 0.45 * Math.sin((now / period) * Math.PI * 2);
+    dom.multiplierBadge.style.opacity = pulse.toFixed(2);
+}
+
 export function gameLoop(currentTime) {
     if (!state.lastTickTime) state.lastTickTime = currentTime;
     if (!state.gameOver && !state.gamePaused) {
@@ -206,6 +248,7 @@ export function gameLoop(currentTime) {
         }
         const t = Math.min((currentTime - state.lastTickTime) / tickInterval, 1);
         draw(t);
+        if (state.gameMode === 'levels') updateMultiplierBadgeFlash(currentTime);
     }
     if (!state.gameOver) requestAnimationFrame(gameLoop);
 }
@@ -297,4 +340,5 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     dom.pauseButton.style.display = 'none';
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
+    if (dom.multiplierBadge) dom.multiplierBadge.style.display = 'none';
 }

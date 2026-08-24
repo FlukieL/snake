@@ -39,10 +39,13 @@ export const constants = {
     POWERUP_LIFETIME: 8000, // ms a spawned power-up stays on the board before vanishing
     MULTIPLIER_DURATION: 10000, // ms a multiplier stack lasts / is refreshed to on pickup
 
-    // Permanent speed penalties, added directly to the tick interval (ms) and
-    // never removed for the rest of the run. Multiple stack additively.
-    SLOWDOWN_PER_POWERUP: 18, // ms added to tick interval when the "Slow" power-up is collected
-    SLOWDOWN_ON_DEATH: 10, // ms added to tick interval every time a life is lost
+    // Permanent speed penalties, added directly to the tick interval (ms).
+    // These stack additively when gained, but partially decay every time the
+    // player levels up (see LEVEL_SLOWDOWN_DECAY) so speed gradually recovers
+    // as the run progresses, rather than being a permanent dead weight.
+    SLOWDOWN_PER_POWERUP: 10, // ms added to tick interval when the "Slow" power-up is collected
+    SLOWDOWN_ON_DEATH: 6, // ms added to tick interval every time a life is lost
+    LEVEL_SLOWDOWN_DECAY: 4, // ms of accumulated slowdown removed every time the player levels up
 
     POWERUP_TYPES: {
         multiplier: {

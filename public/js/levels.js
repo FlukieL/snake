@@ -225,6 +225,11 @@ export function onFruitEatenInLevelsMode() {
     if (state.fruitsEatenThisLevel >= constants.FRUITS_PER_LEVEL) {
         state.level++;
         state.fruitsEatenThisLevel = 0;
+        // Speed gradually recovers as the run progresses: a portion of any
+        // accumulated permanent slowdown (from Slow power-ups/deaths) is
+        // shed on every level-up, so the snake starts speeding up again
+        // instead of staying permanently crippled by earlier slowdowns.
+        state.permanentSlowdown = Math.max(0, state.permanentSlowdown - constants.LEVEL_SLOWDOWN_DECAY);
         recomputeTickInterval();
         updateObstaclesForLevel();
         return true;
@@ -255,6 +260,19 @@ export function getMultiplierValue() {
 
 export function isScoreMultiplied() {
     return performance.now() < state.effects.multiplierUntil;
+}
+
+// Call whenever a fruit is eaten while a multiplier is currently active, so
+// that continuing to eat keeps the bonus going (refreshing back to the full
+// duration) instead of it just ticking down and expiring after 10 seconds
+// regardless of how well the player is doing. Does NOT increase the stack
+// level - only collecting another multiplier power-up does that.
+export function extendMultiplierOnFruitEaten() {
+    if (state.gameMode !== 'levels') return;
+    const now = performance.now();
+    if (now < state.effects.multiplierUntil) {
+        state.effects.multiplierUntil = now + constants.MULTIPLIER_DURATION;
+    }
 }
 
 function randomFreeCell() {

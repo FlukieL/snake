@@ -25,6 +25,7 @@ export const dom = {
     scoreCounter: document.getElementById('scoreCounter'),
     levelBadge: document.getElementById('levelBadge'),
     livesBadge: document.getElementById('livesBadge'),
+    multiplierBadge: document.getElementById('multiplierBadge'),
     scoreboardModeTabs: document.getElementById('scoreboardModeTabs'),
 
     powerupInfoButton: document.getElementById('powerupInfoButton'),
