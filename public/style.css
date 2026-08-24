@@ -78,6 +78,24 @@ canvas {
     padding: 20px 0;
 }
 
+/* Fix for a well-known flexbox issue ("flexbug #3"): when a flex container
+   uses align-items/justify-content: center together with overflow-y: auto,
+   content that overflows ABOVE the visually-centered position becomes
+   unreachable by scrolling - the browser only lets you scroll to reveal
+   overflow below center. This was hiding the logo (the first child) on
+   wide/short viewports (e.g. an unfolded Samsung Fold) where the menu's
+   total height exceeds the viewport but the flex centering still tries to
+   vertically center everything, cutting off access to the top.
+   The fix: insert invisible auto-margin pseudo-elements before/after the
+   real content. These take up any leftover space (keeping things centered
+   when everything fits) but collapse to zero height once the content
+   overflows, which allows scrolling all the way to the very top/bottom. */
+#gameOverScreen::before, #startGameScreen::before, #pauseScreen::before,
+#gameOverScreen::after, #startGameScreen::after, #pauseScreen::after {
+    content: "";
+    margin: auto 0;
+}
+
 #gameOverScreen, #pauseScreen {
     display: none;
 }
