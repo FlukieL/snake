@@ -17,18 +17,22 @@ export function resetLevelsState() {
     state.effects.invincibleUntil = 0;
     state.lives = constants.STARTING_LIVES;
     state.nextExtraLifeAt = constants.POINTS_PER_EXTRA_LIFE;
+    state.nextExtraLifeIncrement = constants.POINTS_PER_EXTRA_LIFE;
     updateObstaclesForLevel();
 }
 
 // Call whenever the score changes in Levels Mode. Awards an extra life every
-// time the score crosses a multiple of POINTS_PER_EXTRA_LIFE. Returns true if
-// a life was awarded (so callers can play a sound/show feedback).
+// time the score crosses the next threshold. Each successive threshold
+// requires progressively more points than the last (30, then 40, then 50...)
+// rather than a flat repeating amount. Returns true if a life was awarded
+// (so callers can play a sound/show feedback).
 export function checkForExtraLife() {
     if (state.gameMode !== 'levels') return false;
     let awarded = false;
     while (state.score >= state.nextExtraLifeAt) {
         state.lives++;
-        state.nextExtraLifeAt += constants.POINTS_PER_EXTRA_LIFE;
+        state.nextExtraLifeIncrement += constants.EXTRA_LIFE_INCREMENT_STEP;
+        state.nextExtraLifeAt += state.nextExtraLifeIncrement;
         awarded = true;
     }
     return awarded;
@@ -45,6 +49,10 @@ export function loseLifeOrGameOver() {
     // the Slow power-up - a real (if minor) consequence for crashing.
     state.permanentSlowdown += constants.SLOWDOWN_ON_DEATH;
     recomputeTickInterval();
+    // Dying should clear any active score multiplier - it shouldn't survive
+    // a crash/respawn and keep boosting points as if nothing happened.
+    state.effects.multiplierUntil = 0;
+    state.effects.multiplierStacks = 0;
     return true;
 }
 

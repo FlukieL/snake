@@ -508,10 +508,11 @@ export function draw(t) {
     let headPos = null;
 
     // While a score multiplier is active in Levels Mode, the whole snake
-    // pulses/flashes yellow so the bonus is obvious at a glance rather than
-    // only visible via a small badge or number.
+    // gently pulses yellow so the bonus is obvious at a glance rather than
+    // only visible via a small badge or number. Kept subtle/slow (period
+    // ~90 -> ~260ms, low amplitude) rather than a rapid strobe.
     const multiplierActive = state.gameMode === 'levels' && isScoreMultiplied();
-    const flashPulse = multiplierActive ? (0.5 + Math.sin(now / 90) * 0.5) : 0;
+    const flashPulse = multiplierActive ? (0.25 + Math.sin(now / 260) * 0.25) : 0;
 
     for (let i = 0; i < state.snake.length; i++) {
         const curr = state.snake[i];

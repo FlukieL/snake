@@ -86,7 +86,10 @@ export const constants = {
 
     // --- Lives (Levels Mode only) ---
     STARTING_LIVES: 3,
-    POINTS_PER_EXTRA_LIFE: 30,
+    POINTS_PER_EXTRA_LIFE: 30, // score needed for the 1st extra life
+    // Each subsequent extra life requires this much more than the last
+    // (30, then 40, then 50...) rather than a flat repeating amount.
+    EXTRA_LIFE_INCREMENT_STEP: 10,
 
     NOKIA_PIXEL: '#3a3f2e',
     // Levels Mode theme colors (matches the "Play Levels" button's purple).
@@ -152,6 +155,7 @@ export const state = {
     obstacles: [], // array of { x, y }
     lives: 3,
     nextExtraLifeAt: 30, // score threshold at which the next extra life is awarded
+    nextExtraLifeIncrement: 30, // how much the threshold increases by each time (grows by EXTRA_LIFE_INCREMENT_STEP)
 
     // Active power-ups: spawned pickup on the board, and currently-applied effects.
     activePowerup: null, // { type, x, y, spawnTime }
