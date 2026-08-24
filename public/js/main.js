@@ -15,7 +15,8 @@ import {
     initializeGame,
     togglePause,
     startGameSession,
-    returnToMainMenu
+    returnToMainMenu,
+    exitToMainMenuFromPause
 } from './game.js';
 
 function initScoreAnimationCleanup() {
@@ -42,6 +43,12 @@ function initMenuButtons() {
     dom.mainMenuButton.addEventListener('click', () => {
         returnToMainMenu(submitCurrentScoreIfNeeded);
     });
+
+    if (dom.mainMenuPauseButton) {
+        dom.mainMenuPauseButton.addEventListener('click', () => {
+            exitToMainMenuFromPause(submitCurrentScoreIfNeeded);
+        });
+    }
 }
 
 function initIOSPrompt() {

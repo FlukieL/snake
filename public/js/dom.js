@@ -39,6 +39,7 @@ export const dom = {
 
     pauseButton: document.getElementById('pauseButton'),
     mainMenuButton: document.getElementById('mainMenuButton'),
+    mainMenuPauseButton: document.getElementById('mainMenuPauseButton'),
 
     muteMusicButton: document.getElementById('muteMusicButton'),
     muteEffectsButton: document.getElementById('muteEffectsButton'),

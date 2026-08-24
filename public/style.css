@@ -728,6 +728,22 @@ body.nokia-mode #signedInAs {
     color: #2b2f1f !important;
 }
 
+/* Nokia Mode's VT323 font renders noticeably smaller than Poppins at the
+   same pixel size, making scoreboard names/dates hard to read - bump them
+   up while in Nokia Mode specifically rather than changing the base sizes
+   used by the normal theme. */
+body.nokia-mode .score-name {
+    font-size: 18px !important;
+}
+
+body.nokia-mode .score-date {
+    font-size: 15px !important;
+}
+
+body.nokia-mode .score-value {
+    font-size: 18px !important;
+}
+
 body.nokia-mode .logo-container {
     display: none !important;
 }

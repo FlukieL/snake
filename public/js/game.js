@@ -350,6 +350,20 @@ export function startGameSession(mode) {
     dom.pauseButton.style.display = 'block';
 }
 
+// Called from the pause screen's "Exit to Main Menu" button - quits the
+// current in-progress run early (unlike the Game Over screen's Main Menu
+// button, which only ever appears after the game loop has already stopped).
+// Marks the game as over so the running gameLoop's requestAnimationFrame
+// chain stops, then defers to the same returnToMainMenu() cleanup used
+// elsewhere so both paths stay in sync.
+export function exitToMainMenuFromPause(submitCurrentScoreIfNeeded) {
+    state.gameOver = true;
+    state.gamePaused = false;
+    dom.gameMusic.pause();
+    dom.pauseScreen.style.display = 'none';
+    returnToMainMenu(submitCurrentScoreIfNeeded);
+}
+
 export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     state.inGame = false;
     // Restore the theme to match whichever mode tab is currently selected on
