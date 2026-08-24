@@ -409,11 +409,15 @@ function drawSegmentOverlay(ctx, x, y, gridSize, overlay) {
     ctx.globalAlpha = Math.min(0.85, overlay.intensity);
     ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
     drawRoundedRect(ctx, x, y, gridSize, gridSize, gridSize / 4);
-    // A soft glow ring around the segment for extra visual pop.
-    ctx.globalAlpha = Math.min(0.4, overlay.intensity * 0.5);
-    ctx.shadowColor = overlay.color;
-    ctx.shadowBlur = gridSize * 0.6;
-    drawRoundedRect(ctx, x, y, gridSize, gridSize, gridSize / 4);
+    // A slightly oversized, lower-alpha second pass stands in for the glow
+    // ring previously done with ctx.shadowBlur - shadowBlur is extremely
+    // expensive on Safari/WebKit (forces an unaccelerated software blur
+    // pass), and this ran every frame for the duration of each digestion
+    // wave, contributing to iOS-specific stutter. This gives a similar soft
+    // "pop" without the blur cost.
+    const expand = gridSize * 0.12;
+    ctx.globalAlpha = Math.min(0.35, overlay.intensity * 0.45);
+    drawRoundedRect(ctx, x - expand, y - expand, gridSize + expand * 2, gridSize + expand * 2, gridSize / 3);
     ctx.restore();
 }
 
@@ -480,13 +484,24 @@ function drawPowerup(ctx, now) {
     const r = gridSize * 0.38 * pulse;
 
     ctx.save();
-    ctx.shadowColor = def.color;
-    ctx.shadowBlur = gridSize * 0.5;
+    // A radial gradient fading to transparent stands in for the previous
+    // ctx.shadowBlur glow - shadowBlur forces an expensive unaccelerated
+    // software blur pass on Safari/WebKit and ran every frame for the
+    // entire time a power-up sat on the board, contributing to iOS
+    // stutter. A gradient is fully GPU-accelerated and looks equivalent.
+    const glowRadius = r * 1.8;
+    const gradient = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, glowRadius);
+    gradient.addColorStop(0, def.color);
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.fillStyle = def.color;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.fillStyle = '#0a0a0a';
     ctx.font = `bold ${Math.round(gridSize * 0.42)}px sans-serif`;
     ctx.textAlign = 'center';
