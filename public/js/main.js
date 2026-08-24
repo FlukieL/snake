@@ -59,18 +59,55 @@ function initMenuButtons() {
     }
 }
 
-function initIOSPrompt() {
+function initPwaInstall() {
+    const installButton = dom.installPwaButton;
     const iosPrompt = document.getElementById('iosPrompt');
     const dismissPrompt = document.getElementById('dismissPrompt');
-    if (!iosPrompt || !dismissPrompt) return;
+    if (!installButton) return;
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (isIOS && !isStandalone) {
-        iosPrompt.style.display = 'block';
+    const isMobile = isIOS || /Android/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    let deferredInstallPrompt = null;
+
+    // The install UI is deliberately mobile-only and is never shown inside
+    // the installed app itself. iOS does not provide beforeinstallprompt, so
+    // its button opens concise Safari-specific installation instructions.
+    if (!isMobile || isStandalone) return;
+
+    if (isIOS) {
+        installButton.style.display = 'block';
+        installButton.addEventListener('click', () => {
+            if (iosPrompt) iosPrompt.style.display = 'block';
+        });
+        if (dismissPrompt) {
+            dismissPrompt.addEventListener('click', () => {
+                if (iosPrompt) iosPrompt.style.display = 'none';
+            });
+        }
+        return;
     }
-    dismissPrompt.addEventListener('click', () => {
-        iosPrompt.style.display = 'none';
+
+    // Chromium exposes this event only when the browser considers the page
+    // installable. Saving it lets a user-initiated button click show Chrome's
+    // native install dialog; browsers never allow that dialog to be forced.
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installButton.style.display = 'block';
+    });
+
+    installButton.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installButton.style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        installButton.style.display = 'none';
     });
 }
 
@@ -145,7 +182,7 @@ function init() {
     initLogoAnimation();
     initScoreAnimationCleanup();
     initMenuButtons();
-    initIOSPrompt();
+    initPwaInstall();
     initServiceWorker();
 }
 

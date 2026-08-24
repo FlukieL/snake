@@ -739,6 +739,23 @@ button:disabled:hover {
     color: #7dffb0;
 }
 
+/* Mobile-only PWA install action. Its display is controlled by main.js:
+   Android shows it only after Chrome supplies beforeinstallprompt; iOS
+   shows it outside standalone mode and opens Share-sheet instructions. */
+.install-pwa-button {
+    width: 100%;
+    display: block;
+    background: rgba(51, 209, 122, 0.16);
+    color: #7dffb0;
+    border: 1px solid rgba(51, 209, 122, 0.5);
+    box-shadow: none;
+    margin: 0.65rem 0 0;
+}
+
+.install-pwa-button:hover {
+    background: rgba(51, 209, 122, 0.26);
+}
+
 /* ============================================================ */
 /* NOKIA MODE - classic monochrome LCD Snake look                */
 /* ============================================================ */
