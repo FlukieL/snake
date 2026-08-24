@@ -181,6 +181,17 @@ function update() {
 
     if (state.gameMode === 'levels') {
         maybeSpawnPowerup(performance.now());
+        maybeRespawnStaleFood();
+    }
+}
+
+// In Levels Mode, food that's sat uneaten for too long relocates to a new
+// free cell, so the board doesn't stagnate around a single hard-to-reach
+// spot (especially once obstacles/power-ups start crowding the grid).
+function maybeRespawnStaleFood() {
+    const now = performance.now();
+    if (now - state.foodSpawnTime >= constants.FOOD_RESPAWN_TIMEOUT) {
+        generateFood();
     }
 }
 

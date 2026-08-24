@@ -38,6 +38,7 @@ export const constants = {
     POWERUP_SPAWN_INTERVAL: 11000, // ms between power-up spawn attempts
     POWERUP_LIFETIME: 8000, // ms a spawned power-up stays on the board before vanishing
     MULTIPLIER_DURATION: 10000, // ms a multiplier stack lasts / is refreshed to on pickup
+    FOOD_RESPAWN_TIMEOUT: 20000, // ms - in Levels Mode, uneaten food relocates to a new cell after this long
 
     // Permanent speed penalties, added directly to the tick interval (ms).
     // These stack additively when gained, but partially decay every time the

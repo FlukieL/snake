@@ -4,7 +4,7 @@
 // Purely cosmetic - fully independent of the real game state/loop. Recolors
 // to match the current theme (Classic green vs Levels purple) automatically.
 
-const COLS = 26;
+const COLS = 34;
 const ROWS = 9;
 
 // Bitmap spelling "SNAKE" across the grid (1 = wall cell), a compact 5x7
