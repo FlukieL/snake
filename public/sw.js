@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v45';
+const CACHE_VERSION = 'v46';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -45,9 +45,28 @@ const STATIC_MEDIA = [
     '/logo.jpg'
 ];
 
+// Caches each URL individually rather than using cache.addAll(), which is
+// atomic - if even ONE resource in the list fails to fetch (a transient
+// network hiccup, a typo'd path, deploy timing, etc.), addAll() aborts the
+// ENTIRE install with no cache populated at all, silently leaving the app
+// with zero offline capability despite the service worker appearing to
+// register successfully. This is very likely the cause of "This site
+// can't be reached" errors when opening the installed PWA offline - a
+// single failed resource during install meant literally nothing (not even
+// index.html) ever got cached. Caching individually means one failure only
+// skips that one resource, while everything else still gets cached
+// successfully.
+function cacheAll(cache, urls) {
+    return Promise.all(urls.map((url) =>
+        cache.add(url).catch((err) => {
+            console.error('Service worker: failed to cache', url, err);
+        })
+    ));
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll([...APP_SHELL, ...STATIC_MEDIA]))
+        caches.open(CACHE_NAME).then((cache) => cacheAll(cache, [...APP_SHELL, ...STATIC_MEDIA]))
     );
     // Activate the new service worker immediately, without waiting for old
     // tabs to close, so cache/version updates roll out as fast as possible.
@@ -107,7 +126,21 @@ self.addEventListener('fetch', (event) => {
                     }
                     return networkResponse;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(() => caches.match(event.request).then((cached) => {
+                    // Final fallback specifically for navigation requests
+                    // (e.g. the PWA's manifest start_url "/index.html" being
+                    // loaded when the OS launches the installed app while
+                    // offline) - if this exact URL somehow wasn't cached for
+                    // any reason, fall back to whichever of "/" or
+                    // "/index.html" IS cached rather than surfacing a raw
+                    // failed-fetch/"can't be reached" error, since they're
+                    // the same document either way.
+                    if (cached) return cached;
+                    if (event.request.mode === 'navigate') {
+                        return caches.match('/index.html').then((indexFallback) => indexFallback || caches.match('/'));
+                    }
+                    return undefined;
+                }))
         );
         return;
     }

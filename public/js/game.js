@@ -17,6 +17,7 @@ import {
 import { renderScoreboard, fetchHighScores, realignVisibleSliders } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
 import { focusFirstMenuItem } from './input.js';
+import { updateOfflineUI } from './offline.js';
 import {
     resetLevelsState,
     onFruitEatenInLevelsMode,
@@ -205,6 +206,10 @@ function triggerGameOver() {
     dom.finalScore.innerText = state.score;
     dom.gameOverScreen.style.display = 'block';
     dom.pauseButton.style.display = 'none';
+    // Re-show the offline banner (if still offline) now that gameplay has
+    // stopped and the Game Over screen's own scoreboard/sign-in section is
+    // visible again - it was intentionally hidden during active gameplay.
+    updateOfflineUI();
     // Re-align the Game Over screen's own scoreboard tab-slider pills now
     // that the screen is actually visible - they were positioned while
     // display:none (offsetLeft/offsetWidth measure as 0 then), which left
@@ -304,6 +309,12 @@ export function initializeGame(mode) {
     state.gamePaused = false;
     state.scoreSubmitted = false;
     state.inGame = true;
+    // Hide the offline banner (if shown) now that we're actively playing -
+    // it overlaps the fixed top-right Pause button and gameplay itself
+    // doesn't depend on the network. It reappears automatically on Game
+    // Over/returning to the main menu (see triggerGameOver/returnToMainMenu
+    // below) if still offline at that point.
+    updateOfflineUI();
     state.snake = [{ x: 10, y: 10 }];
     state.previousSnake = [{ x: 10, y: 10 }];
     state.direction = 'right';
@@ -421,6 +432,9 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     }
     dom.gameOverScreen.style.display = 'none';
     submitCurrentScoreIfNeeded();
+    // Re-show the offline banner (if still offline) now that we're back on
+    // a menu screen - it's intentionally hidden during active gameplay.
+    updateOfflineUI();
     dom.startGameScreen.style.display = 'block';
     dom.canvas.style.display = 'none';
     dom.scoreCounter.style.display = 'none';
