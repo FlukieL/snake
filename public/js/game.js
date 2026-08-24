@@ -203,6 +203,7 @@ function triggerGameOver() {
     dom.gameMusic.pause();
     dom.finalScore.innerText = state.score;
     dom.gameOverScreen.style.display = 'block';
+    dom.pauseButton.style.display = 'none';
     // Re-align the Game Over screen's own scoreboard tab-slider pills now
     // that the screen is actually visible - they were positioned while
     // display:none (offsetLeft/offsetWidth measure as 0 then), which left
