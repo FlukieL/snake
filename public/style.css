@@ -120,13 +120,13 @@ button:disabled:hover {
     transform: none;
 }
 
-/* Logo */
+/* Logo - kept small/compact like the original static logo, not a big banner. */
 .logo-container {
-    width: 100%;
-    max-width: 320px;
-    height: 90px;
+    position: relative;
+    width: 96px;
+    height: 96px;
     margin-bottom: 20px;
-    border-radius: 16px;
+    border-radius: 18px;
     border: 3px solid var(--surface-border);
     display: flex;
     justify-content: center;
@@ -135,10 +135,20 @@ button:disabled:hover {
     box-shadow: var(--shadow);
 }
 
+/* The global `canvas` selector further down sets position:absolute and
+   display:none (for the main game canvas) - both must be explicitly reset
+   here, otherwise this canvas inherits position:absolute with no positioned
+   ancestor and stretches to the viewport's full width instead of filling
+   its small container. */
 .logo-container canvas {
+    position: static;
+    display: block;
     width: 100%;
     height: 100%;
-    display: block;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
 }
 
 #highScoreInput {
@@ -622,8 +632,8 @@ button:disabled:hover {
     }
 
     .logo-container {
-        max-width: 260px;
-        height: 74px;
+        width: 84px;
+        height: 84px;
         margin-bottom: 16px;
     }
 

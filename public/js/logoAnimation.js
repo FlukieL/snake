@@ -4,11 +4,11 @@
 // Purely cosmetic - fully independent of the real game state/loop. Recolors
 // to match the current theme (Classic green vs Levels purple) automatically.
 
-const COLS = 30;
-const ROWS = 10;
+const COLS = 26;
+const ROWS = 9;
 
-// Bitmap spelling "SNAKE" across the grid (1 = wall cell). Built from a
-// simple 5-row-tall block font, centered with padding on each side.
+// Bitmap spelling "SNAKE" across the grid (1 = wall cell), a compact 5x7
+// block font, small enough to fit a tiny logo-sized banner.
 const LETTER_S = [
     '01111',
     '10000',
@@ -96,7 +96,13 @@ let ctx = null;
 let canvas = null;
 let cellSize = 0;
 let lastStepTime = 0;
-const STEP_INTERVAL = 140; // ms between AI moves - deliberately slow/calm
+let stuckCounter = 0; // counts consecutive ticks without eating, to force a reset if wandering forever
+const STEP_INTERVAL = 150; // ms between AI moves - deliberately slow/calm
+const MAX_STUCK_TICKS = 160; // ~24s of not eating -> reset, so it never visibly loops forever
+
+function cellKey(x, y) {
+    return y * COLS + x;
+}
 
 function randomFreeCell() {
     let attempts = 0;
@@ -116,33 +122,7 @@ function resetSnake() {
     snake = [start];
     direction = 'right';
     food = randomFreeCell();
-}
-
-// Simple greedy AI: tries the direction that most reduces distance to the
-// food while avoiding walls/self-collision; falls back to any safe direction.
-function pickNextDirection() {
-    if (!food || !snake.length) return direction;
-    const head = snake[0];
-    const options = ['up', 'down', 'left', 'right'].filter(dir => {
-        if (dir === 'up' && direction === 'down') return false;
-        if (dir === 'down' && direction === 'up') return false;
-        if (dir === 'left' && direction === 'right') return false;
-        if (dir === 'right' && direction === 'left') return false;
-        const next = stepFrom(head, dir);
-        if (isWall(next.x, next.y)) return false;
-        if (snake.some((s, i) => i !== snake.length - 1 && s.x === next.x && s.y === next.y)) return false;
-        return true;
-    });
-    if (options.length === 0) return null;
-
-    options.sort((a, b) => {
-        const da = stepFrom(head, a);
-        const db = stepFrom(head, b);
-        const distA = Math.abs(da.x - food.x) + Math.abs(da.y - food.y);
-        const distB = Math.abs(db.x - food.x) + Math.abs(db.y - food.y);
-        return distA - distB;
-    });
-    return options[0];
+    stuckCounter = 0;
 }
 
 function stepFrom(pos, dir) {
@@ -155,17 +135,83 @@ function stepFrom(pos, dir) {
     }
 }
 
+// Breadth-first search from the head to the food, treating every snake
+// segment except the tail (which will have moved out of the way by the time
+// the head could reach it) as a solid obstacle alongside the walls. Returns
+// the first-step direction along the shortest path, or null if unreachable.
+function bfsDirectionToFood() {
+    if (!food || !snake.length) return null;
+    const head = snake[0];
+    const blocked = new Set();
+    for (let i = 0; i < snake.length - 1; i++) {
+        blocked.add(cellKey(snake[i].x, snake[i].y));
+    }
+
+    const visited = new Set([cellKey(head.x, head.y)]);
+    const queue = [{ pos: head, path: [] }];
+    let qi = 0;
+
+    while (qi < queue.length) {
+        const { pos, path } = queue[qi++];
+        if (pos.x === food.x && pos.y === food.y) {
+            return path.length ? path[0] : null;
+        }
+        for (const dir of ['up', 'down', 'left', 'right']) {
+            const next = stepFrom(pos, dir);
+            if (isWall(next.x, next.y)) continue;
+            const key = cellKey(next.x, next.y);
+            if (visited.has(key)) continue;
+            if (blocked.has(key)) continue;
+            visited.add(key);
+            queue.push({ pos: next, path: [...path, dir] });
+        }
+        // Safety cap so a pathological grid can never hang the main thread.
+        if (queue.length > COLS * ROWS * 2) break;
+    }
+    return null;
+}
+
+// Fallback used when the food is unreachable (e.g. temporarily boxed in by
+// its own body): picks any safe direction, preferring one that doesn't
+// immediately reverse, so the snake keeps calmly moving instead of freezing.
+function anySafeDirection() {
+    const head = snake[0];
+    const opposite = { up: 'down', down: 'up', left: 'right', right: 'left' };
+    const options = ['up', 'down', 'left', 'right'].filter(dir => {
+        if (dir === opposite[direction]) return false;
+        const next = stepFrom(head, dir);
+        if (isWall(next.x, next.y)) return false;
+        if (snake.some((s, i) => i !== snake.length - 1 && s.x === next.x && s.y === next.y)) return false;
+        return true;
+    });
+    if (options.length) return options[Math.floor(Math.random() * options.length)];
+
+    // Even reversing is better than freezing entirely.
+    const next = stepFrom(head, opposite[direction]);
+    if (!isWall(next.x, next.y)) return opposite[direction];
+    return null;
+}
+
 function stepSnake() {
-    const nextDir = pickNextDirection();
+    stuckCounter++;
+    if (stuckCounter > MAX_STUCK_TICKS) {
+        resetSnake();
+        return;
+    }
+
+    let nextDir = bfsDirectionToFood();
+    if (!nextDir) nextDir = anySafeDirection();
     if (!nextDir) {
         resetSnake();
         return;
     }
+
     direction = nextDir;
     const head = stepFrom(snake[0], direction);
     snake.unshift(head);
 
     if (food && head.x === food.x && head.y === food.y) {
+        stuckCounter = 0;
         food = randomFreeCell();
         if (!food) resetSnake();
     } else {
@@ -173,7 +219,7 @@ function stepSnake() {
     }
 
     // Cap length so it doesn't grow forever and get stuck too often.
-    if (snake.length > 18) resetSnake();
+    if (snake.length > 14) resetSnake();
 }
 
 function getThemeColors() {
@@ -213,10 +259,10 @@ function draw() {
 
     snake.forEach((seg, i) => {
         ctx.fillStyle = i === 0 ? colors.head : colors.body;
-        const pad = cellSize * 0.08;
+        const pad = cellSize * 0.1;
         ctx.beginPath();
         const x = seg.x * cellSize + pad, y = seg.y * cellSize + pad, s = cellSize - pad * 2;
-        const r = Math.min(6, s / 3);
+        const r = Math.min(4, s / 3);
         ctx.moveTo(x + r, y);
         ctx.arcTo(x + s, y, x + s, y + s, r);
         ctx.arcTo(x + s, y + s, x, y + s, r);
