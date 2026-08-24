@@ -3,6 +3,7 @@
 
 import { dom } from './dom.js';
 import { constants } from './state.js';
+import { focusFirstMenuItem } from './input.js';
 
 function populatePowerupInfoList() {
     if (!dom.powerupInfoList) return;
@@ -35,11 +36,23 @@ function populatePowerupInfoList() {
 }
 
 function openModal() {
-    if (dom.powerupInfoModal) dom.powerupInfoModal.style.display = 'flex';
+    if (!dom.powerupInfoModal) return;
+    dom.powerupInfoModal.style.display = 'flex';
+    // Move keyboard/gamepad focus into the modal (its "Got it" button) so
+    // navigation continues working immediately rather than staying on the
+    // now-covered "What do power-ups do?" button underneath.
+    requestAnimationFrame(focusFirstMenuItem);
 }
 
 function closeModal() {
-    if (dom.powerupInfoModal) dom.powerupInfoModal.style.display = 'none';
+    if (!dom.powerupInfoModal) return;
+    dom.powerupInfoModal.style.display = 'none';
+    // Return keyboard/gamepad focus to the main menu now that the modal
+    // (which previously took navigation priority) is gone - without this,
+    // getActiveMenuScreen() would keep resolving to the main menu
+    // correctly, but focus itself would still be sitting on the modal's
+    // now-hidden "Got it" button, breaking the very next navigation input.
+    requestAnimationFrame(focusFirstMenuItem);
 }
 
 export function initPowerupInfo() {

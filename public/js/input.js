@@ -19,6 +19,16 @@ const MENU_FOCUS_CLASS = 'menu-focus-visible';
 // screen element can technically be display:block at once during
 // transitions - pause/game-over always take priority over the main menu.
 function getActiveMenuScreen() {
+    // The power-up info modal is a separate overlay sibling of the main
+    // menu screens (not nested inside any of them), so it must be checked
+    // first and take priority - otherwise navigation kept resolving to the
+    // main menu underneath it (whose buttons are still technically visible/
+    // focusable since the modal only visually overlays them rather than
+    // hiding them), silently moving focus among covered/invisible elements
+    // instead of the modal's own "Got it" button. This was the cause of
+    // navigation appearing to "stop working" after opening the power-up
+    // info modal from the Levels Mode menu panel.
+    if (dom.powerupInfoModal && dom.powerupInfoModal.offsetParent !== null) return dom.powerupInfoModal;
     if (state.gamePaused && dom.pauseScreen) return dom.pauseScreen;
     if (state.gameOver && dom.gameOverScreen) return dom.gameOverScreen;
     if (!state.inGame && dom.startGameScreen) return dom.startGameScreen;
