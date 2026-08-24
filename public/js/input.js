@@ -6,11 +6,16 @@ import { state } from './state.js';
 import { queueDirection, togglePause, initializeGame, startGameSession } from './game.js';
 import { submitCurrentScoreIfNeeded } from './auth.js';
 
-// Returns the pause screen's buttons in visual top-to-bottom order, so
-// arrow-key/gamepad navigation can cycle through them predictably.
+// Returns the pause screen's currently VISIBLE buttons in top-to-bottom
+// order, so arrow-key/gamepad navigation can cycle through them
+// predictably. Filters out hidden buttons (e.g. the Nokia Mode toggle,
+// which is display:none while in Levels Mode) - focus() silently fails on
+// a display:none element, so including it in the list previously caused
+// navigation to get stuck unable to move past/skip over it.
 function getPauseMenuButtons() {
     if (!dom.pauseScreen) return [];
-    return Array.from(dom.pauseScreen.querySelectorAll('button'));
+    return Array.from(dom.pauseScreen.querySelectorAll('button'))
+        .filter(btn => btn.offsetParent !== null);
 }
 
 // Moves keyboard/gamepad focus to the next/previous button in the pause
