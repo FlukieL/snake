@@ -125,10 +125,17 @@ function initServiceWorker() {
             // Watch for newly installed workers and activate them as soon as
             // they're ready, so users get the latest app/cache version without
             // needing to manually clear their cache.
+            //
+            // Note: we'll also use this as the signal that a *real* update was
+            // installed, to avoid reloading on controllerchange in situations
+            // that aren't actually updates (first control, tab restore, etc.).
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 if (!newWorker) return;
                 newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed') {
+                        sawUpdateInstalled = true;
+                    }
                     if (newWorker.state === 'installed' && registration.waiting) {
                         newWorker.postMessage('SKIP_WAITING');
                     }
@@ -136,15 +143,25 @@ function initServiceWorker() {
             });
         }).catch(() => {});
 
-        // Once the new service worker takes control, reload so the page picks
-        // up the freshly cached assets rather than running stale JS/CSS.
-        // However, reloading mid-game would abruptly kick the player out of
-        // an active session, which is jarring. Instead, only reload
-        // immediately if the player is on the main menu right now; otherwise
-        // wait until they return to the main menu (main-menu button, game
-        // over, etc.) before reloading.
+        // Avoid auto-reloading on every `controllerchange`.
+        //
+        // `controllerchange` fires whenever the page becomes controlled by a
+        // different service worker. That happens on genuine updates, but it
+        // also happens in normal scenarios (first control after registration,
+        // browser restoring a tab, etc.). Auto-reloading in those cases can look
+        // like a "random refresh" even though the cache is already up to date.
+        //
+        // Instead, only reload when we can positively identify a *real* update:
+        //  - we already had a controller (so this isn't the first time control
+        //    was taken), AND
+        //  - this tab's registration observed a new worker reach "installed".
+        //
+        // Additionally, still defer the reload until the user is safely on the
+        // main menu to avoid kicking them out mid-game.
         let hasReloaded = false;
         let updateReady = false;
+        let sawUpdateInstalled = false;
+        const hadControllerOnLoad = !!navigator.serviceWorker.controller;
 
         function reloadIfSafe() {
             if (hasReloaded || !updateReady) return;
@@ -156,6 +173,9 @@ function initServiceWorker() {
         }
 
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!hadControllerOnLoad) return;
+            if (!sawUpdateInstalled) return;
+
             updateReady = true;
             reloadIfSafe();
         });
