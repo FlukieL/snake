@@ -205,6 +205,7 @@ function triggerGameOver() {
     dom.gameMusic.pause();
     dom.finalScore.innerText = state.score;
     dom.gameOverScreen.style.display = 'block';
+    dom.gameHud.style.display = 'none';
     dom.pauseButton.style.display = 'none';
     // Re-show the offline banner (if still offline) now that gameplay has
     // stopped and the Game Over screen's own scoreboard/sign-in section is
@@ -384,7 +385,7 @@ function resumeGame() {
 export function startGameSession(mode) {
     dom.startGameScreen.style.display = 'none';
     dom.canvas.style.display = 'block';
-    dom.scoreCounter.style.display = 'block';
+    dom.gameHud.style.display = 'flex';
     resizeCanvas();
     initializeGame(mode);
     window.addEventListener('resize', resizeCanvas);
@@ -437,7 +438,7 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     updateOfflineUI();
     dom.startGameScreen.style.display = 'block';
     dom.canvas.style.display = 'none';
-    dom.scoreCounter.style.display = 'none';
+    dom.gameHud.style.display = 'none';
     dom.pauseButton.style.display = 'none';
     dom.levelBadge.style.display = 'none';
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';

@@ -1,46 +1,61 @@
-// Small shared UI-update helpers used by multiple modules (audio, nokiaMode).
-// Kept separate/minimal to avoid circular imports between audio.js and nokiaMode.js.
+// Shared UI updates and lightweight modal/notification helpers.
 
 import { dom } from './dom.js';
-import { state } from './state.js';
-import { constants } from './state.js';
+import { state, constants } from './state.js';
+
+let toastTimer = null;
+
+function setSettingValue(button, value, isMuted = false) {
+    if (!button) return;
+    const valueEl = button.querySelector('.setting-value');
+    if (valueEl) valueEl.textContent = value;
+    button.classList.toggle('muted', isMuted);
+}
 
 export function updateMuteButtonUI() {
-    const musicText = state.musicMuted ? 'Unmute Music' : 'Mute Music';
-    dom.muteMusicButton.textContent = musicText;
-    dom.muteMusicGameOverButton.textContent = musicText;
-    dom.muteMusicPauseButton.textContent = musicText;
-    dom.muteMusicButton.classList.toggle('muted', state.musicMuted);
-    dom.muteMusicGameOverButton.classList.toggle('muted', state.musicMuted);
-    dom.muteMusicPauseButton.classList.toggle('muted', state.musicMuted);
-
-    const effectsText = state.effectsMuted ? 'Unmute Effects' : 'Mute Effects';
-    dom.muteEffectsButton.textContent = effectsText;
-    dom.muteEffectsGameOverButton.textContent = effectsText;
-    dom.muteEffectsPauseButton.textContent = effectsText;
-    dom.muteEffectsButton.classList.toggle('muted', state.effectsMuted);
-    dom.muteEffectsGameOverButton.classList.toggle('muted', state.effectsMuted);
-    dom.muteEffectsPauseButton.classList.toggle('muted', state.effectsMuted);
+    setSettingValue(dom.muteMusicButton, state.musicMuted ? 'Off' : 'On', state.musicMuted);
+    setSettingValue(dom.muteEffectsButton, state.effectsMuted ? 'Off' : 'On', state.effectsMuted);
 }
 
 export function updateNokiaModeUI() {
     document.body.classList.toggle('nokia-mode', state.nokiaMode);
-    const label = state.nokiaMode ? '\uD83D\uDCF1 Nokia Mode: On' : '\uD83D\uDCF1 Nokia Mode: Off';
-    if (dom.nokiaModeButton) {
-        dom.nokiaModeButton.textContent = label;
-        dom.nokiaModeButton.classList.toggle('active', state.nokiaMode);
-    }
-    if (dom.nokiaModePauseButton) {
-        dom.nokiaModePauseButton.textContent = label;
-        dom.nokiaModePauseButton.classList.toggle('active', state.nokiaMode);
-    }
+    setSettingValue(dom.nokiaModeButton, state.nokiaMode ? 'On' : 'Off', !state.nokiaMode);
+
     if (dom.nokiaAsciiLogo) {
         dom.nokiaAsciiLogo.textContent = state.nokiaMode ? constants.NOKIA_ASCII_LOGO : '';
     }
-    // Nokia Mode is Classic-only and hides the Classic/Levels mode picker
-    // entirely, so simplify the play button to just say "Play" rather than
-    // "Play Classic" (which implies a choice that no longer exists here).
     if (dom.startButton) {
-        dom.startButton.textContent = state.nokiaMode ? 'Play' : 'Play Classic';
+        dom.startButton.innerHTML = state.nokiaMode ? 'Play <span aria-hidden="true">→</span>' : 'Play Classic <span aria-hidden="true">→</span>';
     }
+}
+
+export function showToast(message) {
+    if (!dom.toast) return;
+    dom.toast.textContent = message;
+    dom.toast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => dom.toast.classList.remove('visible'), 2600);
+}
+
+export function openSettingsModal() {
+    if (!dom.settingsModal) return;
+    updateMuteButtonUI();
+    updateNokiaModeUI();
+    dom.settingsModal.style.display = 'flex';
+    requestAnimationFrame(() => dom.settingsCloseButton?.focus());
+}
+
+export function closeSettingsModal() {
+    if (!dom.settingsModal) return;
+    dom.settingsModal.style.display = 'none';
+}
+
+export function initSettingsUI() {
+    const settingsTriggers = [dom.settingsButton, dom.settingsPauseButton, dom.settingsGameOverButton];
+    settingsTriggers.filter(Boolean).forEach(button => button.addEventListener('click', openSettingsModal));
+
+    dom.settingsCloseButton?.addEventListener('click', closeSettingsModal);
+    dom.settingsModal?.addEventListener('click', event => {
+        if (event.target === dom.settingsModal) closeSettingsModal();
+    });
 }

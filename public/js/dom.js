@@ -1,11 +1,11 @@
-// Central lookup of DOM elements used throughout the app, resolved once at
-// module load time (after the document is parsed, since script.js modules
-// are loaded with `defer`/`type="module"` which run after DOM parsing).
+// Central lookup of DOM elements used throughout the app, resolved after parsing.
 
 export const dom = {
     canvas: document.getElementById('gameCanvas'),
     ctx: document.getElementById('gameCanvas').getContext('2d'),
 
+    gameHud: document.getElementById('gameHud'),
+    toast: document.getElementById('toast'),
     gameOverScreen: document.getElementById('gameOverScreen'),
     startGameScreen: document.getElementById('startGameScreen'),
     pauseScreen: document.getElementById('pauseScreen'),
@@ -27,11 +27,21 @@ export const dom = {
     livesBadge: document.getElementById('livesBadge'),
     multiplierBadge: document.getElementById('multiplierBadge'),
     scoreboardModeTabs: document.getElementById('scoreboardModeTabs'),
+    nokiaAsciiLogo: document.getElementById('nokiaAsciiLogo'),
 
     powerupInfoButton: document.getElementById('powerupInfoButton'),
     powerupInfoModal: document.getElementById('powerupInfoModal'),
     powerupInfoCloseButton: document.getElementById('powerupInfoCloseButton'),
     powerupInfoList: document.getElementById('powerupInfoList'),
+
+    settingsButton: document.getElementById('settingsButton'),
+    settingsPauseButton: document.getElementById('settingsPauseButton'),
+    settingsGameOverButton: document.getElementById('settingsGameOverButton'),
+    settingsModal: document.getElementById('settingsModal'),
+    settingsCloseButton: document.getElementById('settingsCloseButton'),
+    confirmExitModal: document.getElementById('confirmExitModal'),
+    confirmExitButton: document.getElementById('confirmExitButton'),
+    cancelExitButton: document.getElementById('cancelExitButton'),
 
     eatingSound: new Audio('/EatingSound.mp3'),
     gameOverSound: new Audio('/GameOverSound.mp3'),
@@ -44,14 +54,7 @@ export const dom = {
 
     muteMusicButton: document.getElementById('muteMusicButton'),
     muteEffectsButton: document.getElementById('muteEffectsButton'),
-    muteMusicGameOverButton: document.getElementById('muteMusicGameOverButton'),
-    muteEffectsGameOverButton: document.getElementById('muteEffectsGameOverButton'),
-    muteMusicPauseButton: document.getElementById('muteMusicPauseButton'),
-    muteEffectsPauseButton: document.getElementById('muteEffectsPauseButton'),
-
     nokiaModeButton: document.getElementById('nokiaModeButton'),
-    nokiaModePauseButton: document.getElementById('nokiaModePauseButton'),
-    nokiaAsciiLogo: document.getElementById('nokiaAsciiLogo'),
 
     offlineBanner: document.getElementById('offlineBanner'),
     installPwaButton: document.getElementById('installPwaButton')

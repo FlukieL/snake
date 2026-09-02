@@ -1,1193 +1,455 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=VT323&display=swap');
 
 :root {
-    --background-color: #101014;
-    --surface-color: rgba(255, 255, 255, 0.06);
-    --surface-border: rgba(255, 255, 255, 0.12);
-    --text-color: #f2f2f2;
-    --text-muted: rgba(255, 255, 255, 0.6);
+    --background-color: #0d0d12;
+    --surface-color: rgba(255, 255, 255, 0.055);
+    --surface-strong: rgba(255, 255, 255, 0.085);
+    --surface-border: rgba(255, 255, 255, 0.13);
+    --text-color: #f7f7fb;
+    --text-muted: rgba(247, 247, 251, 0.72);
     --accent: #33d17a;
-    --accent-hover: #2bb968;
-    --danger: #e64553;
-    --canvas-bg: #16161c;
-    --canvas-border: rgba(255, 255, 255, 0.14);
-    --score-bg: rgba(0, 0, 0, 0.55);
-    --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    --accent-hover: #55e492;
+    --accent-soft: rgba(51, 209, 122, 0.17);
+    --danger: #f05b69;
+    --canvas-bg: #15151d;
+    --canvas-border: rgba(255, 255, 255, 0.15);
+    --shadow: 0 24px 65px rgba(0, 0, 0, 0.48);
 }
 
-/* Levels Mode theme: overriding the shared --accent/--accent-hover variables
-   at the body level means every button, active tab, score value, etc. that
-   uses var(--accent) automatically switches to the same purple as the
-   "Play Levels" button - no need to override each component individually. */
 body.levels-mode {
-    --accent: #ba68c8;
-    --accent-hover: #a855bb;
+    --accent: #c273d0;
+    --accent-hover: #d995e5;
+    --accent-soft: rgba(194, 115, 208, 0.18);
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html {
-    height: 100%;
-    /* Match the app's dark background at the document root level too, so
-       any area outside the body (e.g. iOS safe-area insets/status bar on
-       older WebKit versions) shows the same color instead of white. */
+    min-height: 100%;
     background: var(--background-color);
 }
 
 body {
-    height: 100%;
-    background: radial-gradient(circle at top, #1a1a22 0%, var(--background-color) 65%);
-    color: var(--text-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    min-height: 100vh;
     margin: 0;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    font-family: 'Poppins', sans-serif;
-    position: relative;
     overflow: hidden;
+    color: var(--text-color);
+    background:
+        radial-gradient(circle at 50% -20%, rgba(76, 88, 126, 0.22), transparent 42%),
+        radial-gradient(circle at 15% 85%, rgba(51, 209, 122, 0.06), transparent 32%),
+        var(--background-color);
+    font-family: Poppins, sans-serif;
     -webkit-tap-highlight-color: transparent;
 }
 
-canvas {
-    background-color: var(--canvas-bg);
-    border: 3px solid var(--canvas-border);
-    position: absolute;
-    display: none;
-    border-radius: 16px;
-    box-shadow: var(--shadow);
+button, a { font: inherit; }
+button { cursor: pointer; }
+
+button:focus-visible, a:focus-visible, .menu-focus-visible {
+    outline: 3px solid var(--accent) !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.12) !important;
 }
 
-/* Disables the browser's default touch gesture handling (pan/scroll/zoom)
-   on the game canvas specifically - on iOS Safari this lets the compositor
-   skip its scroll-hit-testing machinery for touches on the canvas entirely,
-   rather than only relying on JS preventDefault() in touchmove (which still
-   requires the browser to first determine whether the gesture is
-   scrollable). Meaningfully reduces input lag/jank during swipe-based
-   gameplay on iOS specifically. */
-#gameCanvas {
-    touch-action: none;
-}
-
-/* These screens are plain block-level scroll containers (NOT flex
-   containers themselves) - centering is instead handled by the nested
-   .screen-inner wrapper below. Combining flex centering directly with
-   overflow-y:auto on the same element is a well-known cross-browser
-   limitation ("flexbug #3": Chrome/Firefox/Samsung Internet all only let
-   you scroll to reveal overflow BELOW the visually-centered position, never
-   above it) which made the logo (the first child) permanently unreachable
-   by scrolling on wide/short viewports (e.g. an unfolded Samsung Fold),
-   no matter how far up you tried to scroll. Separating "can this scroll"
-   (this element) from "how is content centered" (.screen-inner) sidesteps
-   the bug entirely, since a plain overflow-y:auto block always allows
-   scrolling to its true content boundaries. */
 #gameOverScreen, #startGameScreen, #pauseScreen {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(8, 8, 12, 0.82);
-    backdrop-filter: blur(6px);
-    color: var(--text-color);
-    text-align: center;
+    z-index: 20;
     overflow-y: auto;
+    background: rgba(8, 8, 12, 0.78);
+    backdrop-filter: blur(11px);
 }
 
-/* min-height:100% (not height:100%) lets this wrapper grow taller than the
-   screen and center via margin:auto when content fits, while still allowing
-   it to simply flow to its natural (scrollable) height when content is
-   taller than the viewport - margin:auto on a flex item collapses to 0
-   once there's no leftover space, so scrolling reaches every edge. */
+#gameOverScreen, #pauseScreen { display: none; }
+
 .screen-inner {
     min-height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px 0;
-    box-sizing: border-box;
+    padding: 26px 16px;
 }
 
-#gameOverScreen, #pauseScreen {
-    display: none;
+#startGameScreen { animation: screenEnter 0.42s ease-out; }
+@keyframes screenEnter {
+    from { opacity: 0; transform: scale(1.015); }
+    to { opacity: 1; transform: scale(1); }
 }
 
-button {
-    background-color: var(--accent);
-    border: none;
-    color: #0a0a0a;
-    font-weight: 600;
-    padding: 13px 28px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 15px;
-    cursor: pointer;
-    border-radius: 10px;
-    margin: 6px 0;
-    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 14px rgba(51, 209, 122, 0.25);
-}
-
-button:hover {
-    background-color: var(--accent-hover);
-    transform: translateY(-2px);
-}
-
-button:active {
-    transform: translateY(0);
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-button:disabled:hover {
-    background-color: var(--accent);
-    transform: none;
-}
-
-/* Logo - a compact horizontal banner (not a tall square), filling the width
-   of the menu card while staying short vertically. */
 .logo-container {
-    position: relative;
-    width: 100%;
-    max-width: 300px;
-    height: 64px;
-    margin-bottom: 20px;
-    border-radius: 14px;
-    border: 3px solid var(--surface-border);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    width: min(330px, calc(100vw - 32px));
+    height: 70px;
+    margin-bottom: 18px;
     overflow: hidden;
+    border: 2px solid var(--surface-border);
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.18);
     box-shadow: var(--shadow);
 }
-
-/* The global `canvas` selector further down sets position:absolute and
-   display:none (for the main game canvas) - both must be explicitly reset
-   here, otherwise this canvas inherits position:absolute with no positioned
-   ancestor and stretches to the viewport's full width instead of filling
-   its small container. */
 .logo-container canvas {
-    position: static;
     display: block;
     width: 100%;
     height: 100%;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
 }
 
-#highScoreInput {
-    margin-bottom: 10px;
-    padding: 10px 14px;
-    border-radius: 8px;
+.menu-container {
+    width: min(410px, 100%);
+    padding: 24px;
     border: 1px solid var(--surface-border);
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-color);
-    font-family: inherit;
-    font-size: 14px;
-    text-align: center;
-    outline: none;
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(37, 37, 43, 0.96), rgba(21, 21, 27, 0.96));
+    box-shadow: var(--shadow);
+    animation: cardEnter 0.46s ease-out backwards;
+}
+@keyframes cardEnter {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-#highScoreInput:focus {
-    border-color: var(--accent);
-}
-
-#googleSignInContainer {
+.menu-heading, .modal-heading-row, .section-heading {
     display: flex;
-    justify-content: center;
-    margin-bottom: 10px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
-
-#signedInAs {
-    font-size: 13px;
+.menu-heading { margin-bottom: 16px; }
+.eyebrow {
+    display: block;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+.icon-button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
     color: var(--text-muted);
-    margin-bottom: 10px;
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    background: var(--surface-color);
+    box-shadow: none;
+    font-size: 20px;
+    transition: background-color .2s ease, color .2s ease, transform .2s ease;
 }
+.icon-button:hover { color: var(--text-color); background: var(--surface-strong); transform: translateY(-1px); }
 
-#highScoreInput.input-error {
-    border-color: var(--danger);
-    animation: shakeError 0.3s ease-in-out;
-}
-
-#highScoreInput.input-error::placeholder {
-    color: #ff8a94;
-}
-
-@keyframes shakeError {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
-}
-
-.scoreboard {
-    margin-bottom: 16px;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.scoreboard-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 10px;
-    padding: 4px;
+.mode-tabs, .scoreboard-tabs {
     position: relative;
+    display: flex;
+    gap: 5px;
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.19);
 }
-
-.tab-btn {
-    flex: 1;
+.mode-tabs { margin-bottom: 16px; }
+.mode-tab-btn, .tab-btn {
     position: relative;
     z-index: 1;
-    background: transparent;
-    color: var(--text-muted);
-    border: none;
-    box-shadow: none;
+    flex: 1;
+    min-height: 40px;
     padding: 8px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    margin: 0;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: color 0.25s ease, transform 0.15s ease;
-}
-
-.tab-btn:hover {
-    color: var(--text-color);
-    transform: none;
-}
-
-.tab-btn.active {
+    border: 0;
+    border-radius: 9px;
+    color: var(--text-muted);
     background: transparent;
-    color: #0a0a0a;
     box-shadow: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: color .2s ease, background-color .2s ease;
 }
-
-/* Sliding pill indicator: a single absolutely-positioned element that glides
-   underneath the active tab button (via left/width transitions) instead of
-   each button toggling its own background - giving a smooth, connected
-   sliding animation rather than an instant swap. */
+.mode-tab-btn:hover, .tab-btn:hover { color: var(--text-color); background: rgba(255,255,255,.05); }
+.mode-tab-btn.active, .tab-btn.active { color: #111118; }
 .tab-slider {
     position: absolute;
+    z-index: 0;
     top: 4px;
     bottom: 4px;
     left: 4px;
     width: 0;
+    border-radius: 9px;
     background: var(--accent);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(51, 209, 122, 0.3);
-    transition: left 0.32s cubic-bezier(0.65, 0, 0.35, 1), width 0.32s cubic-bezier(0.65, 0, 0.35, 1), background-color 0.25s ease;
-    z-index: 0;
+    box-shadow: 0 3px 12px var(--accent-soft);
+    transition: left .32s cubic-bezier(.65,0,.35,1), width .32s cubic-bezier(.65,0,.35,1), background-color .25s ease;
     pointer-events: none;
 }
+
+.menu-button, .secondary-action, .danger-action, .text-action, .powerup-info-button {
+    min-height: 46px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    transition: transform .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.primary-action, .menu-button {
+    width: 100%;
+    border: 1px solid var(--accent);
+    color: #0a0a0e;
+    background: var(--accent);
+    box-shadow: 0 8px 20px var(--accent-soft);
+}
+.primary-action:hover, .menu-button:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px var(--accent-soft);
+}
+.primary-action span { float: right; font-size: 19px; line-height: 14px; }
+.controls-hint, .mode-description {
+    margin: 10px 8px 20px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+.levels-button { background: #c273d0; border-color: #c273d0; }
+.levels-button:hover { background: #d995e5; border-color: #d995e5; }
+
+.scoreboard { margin-top: 6px; }
+.section-heading { margin: 0 0 9px; }
+.scoreboard h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 15px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.section-subtitle { color: var(--text-muted); font-size: 11px; font-weight: 600; }
+.scoreboard-tabs { margin-bottom: 10px; }
+.scoreboard ol { display: flex; flex-direction: column; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.scoreboard li {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 50px;
+    padding: 8px 11px;
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    background: var(--surface-color);
+    font-size: 13px;
+}
+.scoreboard li.loading, .scoreboard li.empty { justify-content: center; color: var(--text-muted); }
+.loading-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted);
+    animation: loadingPulse 1s ease-in-out infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: .16s; }
+.loading-dot:nth-child(3) { animation-delay: .32s; }
+@keyframes loadingPulse { 50% { opacity: .25; transform: translateY(-3px); } }
 
 .top-player-banner {
     display: none;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    background: linear-gradient(135deg, rgba(255, 213, 79, 0.12), rgba(51, 209, 122, 0.12));
-    border: 1px solid rgba(255, 213, 79, 0.3);
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-.banner-trophy {
-    flex: 0 0 auto;
-    font-size: 18px;
-    line-height: 1;
-}
-
-.banner-info {
-    min-width: 0;
-    flex: 1 1 auto;
-    overflow: hidden;
-}
-
-.banner-name {
-    display: inline-flex;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-
-/* Continuous, subtle character-by-character color pulse for the top player's name */
-.banner-letter {
-    display: inline-block;
-    animation: letterGlow 2.4s ease-in-out infinite;
-}
-
-@keyframes letterGlow {
-    0%, 100% {
-        opacity: 0.55;
-        transform: translateY(0);
-    }
-    50% {
-        opacity: 1;
-        transform: translateY(-1.5px);
-    }
-}
-
-/* Rank Badges (Top 3) */
-.rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    font-size: 10px;
-    font-weight: 700;
-    margin-right: 6px;
-    flex: 0 0 auto;
-    color: #1a1a1a;
-}
-
-.rank-gold {
-    background: linear-gradient(135deg, #ffe27a, #ffb300);
-    box-shadow: 0 0 6px rgba(255, 179, 0, 0.6);
-}
-
-.rank-silver {
-    background: linear-gradient(135deg, #e8e8e8, #b0b0b8);
-    box-shadow: 0 0 6px rgba(180, 180, 190, 0.5);
-}
-
-.rank-bronze {
-    background: linear-gradient(135deg, #d99a5b, #a86a35);
-    box-shadow: 0 0 6px rgba(168, 106, 53, 0.5);
-}
-
-.scoreboard h2 {
-    font-size: 1.2rem;
+    gap: 9px;
     margin-bottom: 8px;
-    color: var(--text-muted);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.scoreboard ol {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.scoreboard li {
-    font-size: 14px;
-    padding: 6px 10px;
-    background: var(--surface-color);
-    border: 1px solid var(--surface-border);
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    box-sizing: border-box;
+    padding: 9px 11px;
     overflow: hidden;
+    border: 1px solid rgba(255, 213, 79, .35);
+    border-radius: 10px;
+    background: linear-gradient(120deg, rgba(255,213,79,.11), var(--accent-soft));
+    font-size: 13px;
 }
+.banner-trophy { font-size: 18px; }
+.score-info { display: flex; flex: 1; flex-direction: column; min-width: 0; overflow: hidden; text-align: left; }
+.score-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.score-date { color: var(--text-muted); font-size: 10px; }
+.score-value { flex: 0 0 auto; color: var(--accent); font-weight: 700; }
+.banner-letter { display: inline-block; animation: letterGlow 2.4s ease-in-out infinite; }
+@keyframes letterGlow { 50% { opacity: .62; transform: translateY(-1px); } }
+.rank-badge { display: inline-grid; width: 19px; height: 19px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #181817; font-size: 10px; font-weight: 700; }
+.rank-silver { background: #c6c7d0; }.rank-bronze { background: #d59867; }
 
-.score-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    min-width: 0;
-    flex: 1 1 auto;
-    overflow: hidden;
-}
+.links { display: flex; justify-content: center; gap: 9px; margin-top: 20px; color: var(--text-muted); font-size: 12px; }
+.links a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.links a:hover { text-decoration: underline; }
+.creator-info { margin-top: 10px; color: var(--text-muted); font-size: 10px; }
 
-.score-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-    text-align: left;
-    font-weight: 600;
-}
-
-.score-date {
-    font-size: 11px;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-.score-value {
-    flex: 0 0 auto;
-    font-weight: 700;
-    color: var(--accent);
-    padding-left: 6px;
-}
-
-.scoreboard li.loading, .scoreboard li.empty {
-    justify-content: center;
-    color: var(--text-muted);
-}
-
-@keyframes logoAnimation {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.04); }
-}
-
-@keyframes menuFadeIn {
-    0% { transform: translateY(16px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes gameStartAnimation {
-    0% { opacity: 0; transform: scale(0.96); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-#startGameScreen {
-    animation: gameStartAnimation 0.4s ease-out;
-}
-
-.menu-container {
-    background-color: var(--surface-color);
-    border: 1px solid var(--surface-border);
-    padding: 1.75rem;
-    border-radius: 18px;
+#gameCanvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: none;
     max-width: calc(100vw - 32px);
-    width: 380px;
-    box-shadow: var(--shadow);
-    animation: menuFadeIn 0.5s ease-out backwards;
-    box-sizing: border-box;
+    max-height: calc(100vh - 32px);
+    border: 3px solid var(--canvas-border);
+    border-radius: 20px;
+    background: var(--canvas-bg);
+    box-shadow: 0 24px 60px rgba(0,0,0,.52);
+    transform: translate(-50%, -50%);
+    touch-action: none;
 }
-
-#startGameScreen button,
-#startGameScreen .scoreboard,
-#startGameScreen .button-group,
-#startGameScreen .links {
-    animation: menuFadeIn 0.5s ease-out backwards;
-}
-
-#startGameScreen button:nth-of-type(1) { animation-delay: 0.05s; }
-.scoreboard { animation-delay: 0.1s; }
-.button-group { animation-delay: 0.15s; }
-.links { animation-delay: 0.2s; }
-
-.menu-button {
-    font-size: 1.05rem;
-    padding: 0.9rem 1.5rem;
-    margin: 0.5rem 0 1.2rem;
-    width: 100%;
-}
-
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin: 0.5rem 0;
-}
-
-.button-group button {
-    flex: 1;
-    margin: 0;
-}
-
-.links {
-    margin-top: 1rem;
-}
-
-.links a {
-    display: block;
-    color: var(--accent);
-    text-decoration: none;
-    margin: 0.4rem 0;
-    font-size: 14px;
-    transition: color 0.2s ease;
-}
-
-.links a:hover {
-    color: var(--accent-hover);
-    text-decoration: underline;
-}
-
-.creator-info {
-    font-size: 0.75em;
-    color: var(--text-muted);
-    margin-top: 16px;
-}
-
-/* Pause Button */
-#pauseButton {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    display: none;
-    background: var(--surface-color);
-    border: 1px solid var(--surface-border);
-    color: var(--text-color);
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: none;
-    border-radius: 8px;
-    z-index: 10;
-}
-
-#pauseButton:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: none;
-}
-
-#pauseScreen h2 {
-    font-size: 2.6em;
-    margin-bottom: 20px;
-}
-
-/* Visible, unambiguous highlight for whichever menu button/link currently
-   has keyboard/gamepad focus, across ALL menu screens (main menu, pause,
-   game over) - applied via JS as an explicit class rather than relying
-   purely on the :focus-visible pseudo-class, since browsers are
-   inconsistent about when :focus-visible triggers for focus() calls
-   originating from gamepad-driven navigation (some only show it for
-   keyboard-triggered focus), which was why the "highlighted" button
-   wasn't reliably visible. Applies regardless of *how* focus arrived
-   (keyboard, gamepad, or mouse) for consistent, obvious feedback everywhere.
-   !important guards against being silently overridden by more specific
-   per-button-type rules (e.g. .mute-button, .nokia-toggle-button) below. */
-.menu-focus-visible {
-    outline: 3px solid var(--accent) !important;
-    outline-offset: 3px !important;
-    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15) !important;
-    z-index: 1;
-}
-
-/* Mute Buttons */
-.mute-button {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
-    box-shadow: none;
-    border: 1px solid var(--surface-border);
-}
-
-.mute-button:hover {
-    background-color: rgba(255, 255, 255, 0.18);
-}
-
-.mute-button.muted {
-    background-color: rgba(230, 69, 83, 0.18);
-    border-color: rgba(230, 69, 83, 0.4);
-    color: #ff8a94;
-}
-
-/* Score Counter */
-#scoreCounter {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 30px;
-    font-weight: 700;
-    color: var(--text-color);
-    background-color: var(--score-bg);
-    padding: 6px 18px;
-    border-radius: 10px;
-    display: none;
-    z-index: 10;
-    letter-spacing: 0.02em;
-}
-
-.animateScore {
-    animation: scoreAnimation 0.3s ease-in-out;
-}
-
-@keyframes scoreAnimation {
-    0% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.25); color: var(--accent); }
-    100% { transform: translateX(-50%) scale(1); }
-}
-
-@keyframes scoreAnimationLandscape {
-    0% { transform: translateY(-50%) scale(1); }
-    50% { transform: translateY(-50%) scale(1.25); color: var(--accent); }
-    100% { transform: translateY(-50%) scale(1); }
-}
-#gameOverScreen h2 {
-    font-size: 2.6rem;
-    margin-bottom: 4px;
-}
-
-#gameOverScreen p {
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    margin: 4px 0 20px;
-}
-
-#gameOverScreen p span {
-    color: var(--accent);
-    font-weight: 700;
-}
-
-/* Offline banner: fixed at the top of the screen, shown whenever the
-   device loses network connectivity. Score submission and live leaderboard
-   fetching are both disabled while offline (see auth.js/leaderboard.js) -
-   the banner makes that limitation clear rather than leaving the player to
-   wonder why sign-in/submission silently isn't working. */
-#offlineBanner {
-    display: none;
+.game-hud {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 2000;
-    background: linear-gradient(135deg, #e6a13d, #d4842b);
-    color: #1a1208;
-    font-weight: 600;
-    font-size: 13px;
-    text-align: center;
-    padding: 8px 16px;
-    padding-top: calc(8px + env(safe-area-inset-top));
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* iOS Prompt */
-#iosPrompt {
-    display: none;
-    position: fixed;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(10, 10, 12, 0.95);
-    color: white;
-    padding: 20px;
-    border-radius: 14px;
-    z-index: 1000;
-    max-width: 300px;
-    text-align: center;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--surface-border);
-}
-
-#iosPrompt button {
-    margin-top: 10px;
-    background-color: var(--danger);
-    color: white;
-}
-
-@media (max-width: 768px) {
-    .menu-container {
-        width: 90%;
-        padding: 1.5rem;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .menu-button {
-        font-size: 1rem;
-        padding: 0.75rem 1.2rem;
-    }
-
-    #scoreCounter {
-        font-size: 24px;
-        top: 14px;
-    }
-
-    #pauseButton {
-        top: 14px;
-        right: 14px;
-        font-size: 13px;
-        padding: 7px 14px;
-    }
-
-    .logo-container {
-        max-width: 260px;
-        height: 52px;
-        margin-bottom: 16px;
-    }
-
-    canvas {
-        max-width: 95vw;
-        max-height: 95vw;
-    }
-}
-
-/* Nokia Mode toggle button */
-.nokia-toggle-button {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
-    box-shadow: none;
-    border: 1px solid var(--surface-border);
-    width: 100%;
-    display: block;
-}
-
-.nokia-toggle-button.active {
-    background-color: rgba(51, 209, 122, 0.25);
-    border-color: rgba(51, 209, 122, 0.5);
-    color: #7dffb0;
-}
-
-/* Mobile-only PWA install action. Its display is controlled by main.js:
-   Android shows it only after Chrome supplies beforeinstallprompt; iOS
-   shows it outside standalone mode and opens Share-sheet instructions. */
-.install-pwa-button {
-    width: 100%;
-    display: block;
-    background: rgba(51, 209, 122, 0.16);
-    color: #7dffb0;
-    border: 1px solid rgba(51, 209, 122, 0.5);
-    box-shadow: none;
-    margin: 0.65rem 0 0;
-}
-
-.install-pwa-button:hover {
-    background: rgba(51, 209, 122, 0.26);
-}
-
-/* ============================================================ */
-/* NOKIA MODE - classic monochrome LCD Snake look                */
-/* ============================================================ */
-body.nokia-mode {
-    background: #9ead86 !important;
-}
-
-body.nokia-mode * {
-    font-family: 'VT323', monospace !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-    animation: none !important;
-    backdrop-filter: none !important;
-}
-
-body.nokia-mode canvas {
-    background-color: #a8bf8f !important;
-    border: 8px solid #1a1d14 !important;
-}
-
-body.nokia-mode #startGameScreen,
-body.nokia-mode #gameOverScreen,
-body.nokia-mode #pauseScreen {
-    background: #8ea377 !important;
-    color: #2b2f1f !important;
-}
-
-body.nokia-mode .menu-container {
-    background: #9ead86 !important;
-    border: 4px solid #2b2f1f !important;
-}
-
-body.nokia-mode h1,
-body.nokia-mode h2,
-body.nokia-mode p,
-body.nokia-mode .scoreboard h2,
-body.nokia-mode .score-name,
-body.nokia-mode .score-date,
-body.nokia-mode .score-value,
-body.nokia-mode .creator-info,
-body.nokia-mode #signedInAs {
-    color: #2b2f1f !important;
-}
-
-/* Nokia Mode's VT323 font renders noticeably smaller than Poppins at the
-   same pixel size, making scoreboard names/dates hard to read - bump them
-   up while in Nokia Mode specifically rather than changing the base sizes
-   used by the normal theme. */
-body.nokia-mode .score-name {
-    font-size: 18px !important;
-}
-
-body.nokia-mode .score-date {
-    font-size: 15px !important;
-}
-
-body.nokia-mode .score-value {
-    font-size: 18px !important;
-}
-
-body.nokia-mode .logo-container {
-    display: none !important;
-}
-
-.nokia-ascii-logo {
-    display: none;
-}
-
-body.nokia-mode .nokia-ascii-logo {
-    display: block !important;
-    font-family: 'VT323', monospace !important;
-    font-size: 16px !important;
-    line-height: 1.1 !important;
-    color: #1a1d14 !important;
-    margin: 0 auto 16px !important;
-    white-space: pre !important;
-    text-align: center;
-    letter-spacing: 0.5px;
-    /* Simulate bold weight (VT323 has no bold cut) by layering a duplicate text-shadow. */
-    text-shadow:
-        0.6px 0 0 #1a1d14,
-        -0.6px 0 0 #1a1d14,
-        0 0.6px 0 #1a1d14,
-        0 -0.6px 0 #1a1d14 !important;
-}
-
-body.nokia-mode button {
-    background: #2b2f1f !important;
-    color: #9ead86 !important;
-    border: 2px solid #2b2f1f !important;
-    font-size: 18px !important;
-}
-
-body.nokia-mode button:hover {
-    background: #454b2e !important;
-}
-
-body.nokia-mode .scoreboard li,
-body.nokia-mode .top-player-banner,
-body.nokia-mode .scoreboard-tabs {
-    background: #8ea377 !important;
-    border: 2px solid #2b2f1f !important;
-}
-
-body.nokia-mode .tab-btn {
-    color: #2b2f1f !important;
-    background: transparent !important;
-}
-
-body.nokia-mode .tab-btn.active {
-    background: transparent !important;
-    color: #9ead86 !important;
-}
-
-body.nokia-mode .tab-slider {
-    background: #2b2f1f !important;
-}
-
-/* Nokia Mode is Classic-only, so the Classic/Levels mode selector tabs (and
-   the Levels panel) are hidden entirely - the menu just shows a single
-   "Play" button, matching the simplicity of the original Nokia handset. */
-body.nokia-mode #scoreboardModeTabs,
-body.nokia-mode [data-mode-panel="levels"] {
-    display: none !important;
-}
-
-body.nokia-mode [data-mode-panel="classic"] {
-    display: block !important;
-}
-
-body.nokia-mode .rank-badge,
-body.nokia-mode .banner-trophy {
-    display: none !important;
-}
-
-body.nokia-mode .banner-letter {
-    color: #2b2f1f !important;
-}
-
-body.nokia-mode #scoreCounter {
-    background: #2b2f1f !important;
-    color: #9ead86 !important;
-    font-family: 'VT323', monospace !important;
-    border-radius: 0 !important;
-}
-
-body.nokia-mode .links a {
-    color: #2b2f1f !important;
-}
-
-body.nokia-mode .creator-info {
-    opacity: 0.8;
-}
-
-/* ============================================================ */
-/* LEVELS MODE - mode selector, level badge, power-up styling     */
-/* ============================================================ */
-
-.mode-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 10px;
-    padding: 4px;
-    position: relative;
-}
-
-.mode-tab-btn {
-    flex: 1;
-    position: relative;
-    z-index: 1;
-    background: transparent;
-    color: var(--text-muted);
-    border: none;
-    box-shadow: none;
-    padding: 10px 10px;
-    font-size: 14px;
-    font-weight: 700;
-    margin: 0;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: color 0.25s ease, transform 0.15s ease;
-}
-
-.mode-tab-btn:hover {
-    color: var(--text-color);
-    transform: none;
-}
-
-.mode-tab-btn.active {
-    background: transparent;
-    color: #0a0a0a;
-    box-shadow: none;
-}
-
-.mode-panel {
-    animation: menuFadeIn 0.3s ease-out;
-}
-
-.mode-description {
-    font-size: 13px;
-    color: var(--text-muted);
-    text-align: center;
-    margin: -0.4rem 0 1rem;
-    line-height: 1.4;
-}
-
-.levels-button {
-    background-color: #ba68c8;
-    box-shadow: 0 4px 14px rgba(186, 104, 200, 0.35);
-}
-
-.levels-button:hover {
-    background-color: #a855bb;
-}
-
-.final-level {
-    font-size: 1rem;
-    color: #ba68c8;
-    font-weight: 700;
-    margin: -4px 0 16px;
-}
-
-/* Level indicator badge shown during Levels Mode gameplay.
-   Positioned top-left so it doesn't collide with the pause button (top-right)
-   or the score counter (top-center). */
-#levelBadge {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-color);
-    background: rgba(186, 104, 200, 0.85);
-    padding: 6px 16px;
-    border-radius: 10px;
     z-index: 10;
-    letter-spacing: 0.02em;
-    box-shadow: 0 4px 12px rgba(186, 104, 200, 0.4);
-}
-
-@media (max-width: 768px) {
-    #levelBadge {
-        top: 14px;
-        left: 14px;
-        font-size: 14px;
-        padding: 5px 12px;
-    }
-
-    #livesBadge {
-        top: 52px;
-        left: 14px;
-        font-size: 16px;
-        padding: 4px 10px;
-    }
-}
-
-/* Lives badge shown during Levels Mode gameplay, stacked below the level badge */
-#livesBadge {
-    position: absolute;
-    top: 58px;
-    left: 20px;
-    font-size: 20px;
-    z-index: 10;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 4px 12px;
-    border-radius: 10px;
-    letter-spacing: 2px;
-}
-
-/* Score multiplier badge ("x2", "x3", etc), shown next to the score counter
-   while a multiplier power-up is active. Its opacity is driven every frame
-   from JS (game.js) to flash faster and faster as the remaining time runs
-   out, giving a clear urgency cue right before it expires. */
-#multiplierBadge {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(calc(-50% + 90px));
-    font-size: 22px;
-    font-weight: 800;
-    color: #1a1a1a;
-    background: #ffd54f;
-    padding: 6px 14px;
-    border-radius: 10px;
-    z-index: 10;
-    letter-spacing: 0.02em;
-    box-shadow: 0 4px 12px rgba(255, 213, 79, 0.5);
-}
-
-@media (max-width: 768px) {
-    #multiplierBadge {
-        top: 14px;
-        transform: translateX(calc(-50% + 72px));
-        font-size: 18px;
-        padding: 5px 11px;
-    }
-}
-
-/* Power-up info button (shown in the Levels Mode menu panel) */
-.powerup-info-button {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
-    box-shadow: none;
-    border: 1px solid var(--surface-border);
-    width: 100%;
-    display: block;
-    font-size: 13px;
-    padding: 10px 14px;
-    margin: 0.4rem 0 1rem;
-}
-
-.powerup-info-button:hover {
-    background-color: rgba(255, 255, 255, 0.18);
-}
-
-/* Power-up info modal */
-.powerup-modal {
-    position: fixed;
     inset: 0;
-    background: rgba(8, 8, 12, 0.85);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.powerup-modal-content {
-    background-color: var(--background-color);
-    border: 1px solid var(--surface-border);
-    border-radius: 18px;
-    padding: 1.75rem;
-    max-width: 420px;
-    width: 100%;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow);
-    text-align: center;
-}
-
-.powerup-modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 1.2rem;
-}
-
-.powerup-info-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 1.2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.powerup-info-item {
-    display: flex;
+    display: none;
     align-items: flex-start;
-    gap: 12px;
-    text-align: left;
-    background: var(--surface-color);
+    justify-content: space-between;
+    padding: 18px;
+    pointer-events: none;
+}
+.status-cluster { display: flex; flex-direction: column; gap: 7px; }
+.hud-chip, .score-chip, .pause-control {
+    min-height: 38px;
     border: 1px solid var(--surface-border);
     border-radius: 12px;
-    padding: 10px 12px;
+    background: rgba(11, 11, 16, .82);
+    box-shadow: 0 8px 20px rgba(0,0,0,.28);
+    backdrop-filter: blur(9px);
 }
+.hud-chip { width: max-content; padding: 7px 12px; color: var(--text-color); font-size: 14px; font-weight: 700; }
+.score-chip {
+    position: absolute;
+    left: 50%;
+    min-width: 70px;
+    padding: 3px 17px;
+    color: var(--text-color);
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    transform: translateX(-50%);
+}
+.lives-chip { color: #ff9aa4; letter-spacing: 1px; }
+.multiplier-chip {
+    position: absolute;
+    top: 62px;
+    left: 50%;
+    color: #201b08;
+    border-color: #ffe083;
+    background: #ffd54f;
+    font-size: 15px;
+    transform: translateX(-50%);
+}
+.pause-control {
+    min-height: 38px;
+    padding: 7px 12px;
+    color: var(--text-color);
+    pointer-events: auto;
+    font-size: 13px;
+    font-weight: 700;
+}
+.pause-control:hover { border-color: var(--accent); background: var(--surface-strong); }
+.pause-control span { margin-right: 4px; font-weight: 700; }
 
-.powerup-info-icon {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+.animateScore { animation: scoreAnimation .3s ease-in-out; }
+@keyframes scoreAnimation { 50% { color: var(--accent); transform: translateX(-50%) scale(1.2); } }
+
+.powerup-modal {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 13px;
-    color: #0a0a0a;
+    padding: 18px;
+    background: rgba(7,7,10,.76);
+    backdrop-filter: blur(10px);
 }
-
-.powerup-info-text strong {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 2px;
+.powerup-modal-content {
+    width: min(430px, 100%);
+    max-height: 86vh;
+    padding: 24px;
+    overflow-y: auto;
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+    background: #19191f;
+    box-shadow: var(--shadow);
+    animation: cardEnter .23s ease-out;
 }
+.powerup-modal-content h2 { margin: 4px 0 18px; font-size: 27px; }
+.powerup-info-list { display: flex; flex-direction: column; gap: 9px; padding: 0; margin: 0 0 18px; list-style: none; }
+.powerup-info-item { display: flex; gap: 12px; padding: 11px; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-color); text-align: left; }
+.powerup-info-icon { display: grid; width: 37px; height: 37px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #15151b; font-size: 13px; font-weight: 700; }
+.powerup-info-text strong { display: block; font-size: 13px; }
+.powerup-info-text p { margin: 3px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
 
-.powerup-info-text p {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-muted);
-    line-height: 1.4;
-}
-
-#powerupInfoCloseButton {
+.settings-content h2 { margin-bottom: 0; }
+.settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
+    min-height: 65px;
+    padding: 12px 14px;
+    color: var(--text-color);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    background: var(--surface-color);
+    box-shadow: none;
+    text-align: left;
 }
+.setting-row:hover { border-color: var(--accent); background: var(--surface-strong); transform: none; }
+.setting-row span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.setting-row strong { font-size: 13px; }.setting-row small { color: var(--text-muted); font-size: 11px; }
+.setting-value { color: var(--accent); font-size: 12px; font-weight: 700; }
+.setting-row.muted .setting-value { color: #ff98a2; }
+.install-pwa-button { color: var(--text-color); }
 
-/* On phones in landscape orientation, the square game board is vertically
-   centered and only as tall as the (limited) viewport height, leaving wide
-   empty margins on either side - but the score counter and multiplier
-   badge are otherwise positioned/anchored for the portrait layout, so they
-   float directly on top of the board. Reposition both into the left
-   margin instead so neither overlaps the game board. Constrained to
-   short/landscape phone viewports specifically (not tablets/desktop, which
-   have enough vertical room that the board doesn't shrink down to conflict
-   with them).
-   IMPORTANT: this block is placed at the very end of the file, after every
-   other rule targeting these same elements (including the `@media
-   (max-width: 768px)` portrait-mobile overrides) - with equal selector
-   specificity, CSS applies whichever matching rule appears LAST in source
-   order regardless of which one is inside a media query, so this must be
-   the last word to reliably win the cascade on any device (e.g. a phone
-   that's both <768px wide AND landscape+short at the same time). */
-@media (orientation: landscape) and (max-height: 500px) {
-    #scoreCounter {
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-    }
-
-    .animateScore {
-        animation: scoreAnimationLandscape 0.3s ease-in-out;
-    }
-
-    /* Stack the multiplier badge directly below the score counter in the
-       left margin (rather than to the right of a horizontally-centered
-       score, which doesn't apply in this layout). */
-    #multiplierBadge {
-        left: 16px;
-        top: calc(50% + 46px);
-        transform: none;
-    }
+.secondary-action {
+    width: 100%;
+    padding: 10px 16px;
+    color: var(--text-color);
+    border: 1px solid var(--surface-border);
+    background: var(--surface-strong);
+    box-shadow: none;
 }
+.secondary-action:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+.powerup-info-button { width: 100%; margin: -2px 0 16px; padding: 10px 14px; color: var(--text-color); border: 1px solid var(--surface-border); background: var(--surface-color); box-shadow: none; }
+.powerup-info-button:hover { border-color: var(--accent); background: var(--accent-soft); transform: none; }
+.powerup-info-button span { float: right; }
+.text-action { border: 0; background: transparent; color: var(--text-muted); box-shadow: none; }
+.text-action:hover { color: var(--text-color); background: transparent; transform: none; text-decoration: underline; }
+.danger-text { color: #ff9da6; }.danger-action { flex: 1; padding: 10px 16px; border: 1px solid var(--danger); color: white; background: var(--danger); box-shadow: none; }.danger-action:hover { background: #fa7580; }
+.modal-actions { display: flex; gap: 10px; }.modal-actions .secondary-action { flex: 1; }
+.confirmation-content { text-align: center; }.confirmation-content p, .pause-menu > p { color: var(--text-muted); font-size: 13px; }
+.final-score-card { margin: 12px 0 20px; padding: 15px; border: 1px solid var(--surface-border); border-radius: 14px; background: linear-gradient(130deg, var(--accent-soft), transparent); text-align: center; }
+.final-score-card > span { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.final-score-card strong { display: block; color: var(--accent); font-size: 42px; line-height: 1.1; }
+.final-level { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }.final-level span { color: var(--accent); font-weight: 700; }
+.sign-in-card { margin: 17px 0 8px; padding: 13px; border: 1px solid var(--surface-border); border-radius: 13px; background: var(--surface-color); }
+#googleSignInContainer { display: flex; justify-content: center; margin-bottom: 8px; }
+#signedInAs { margin-bottom: 8px; color: var(--text-muted); font-size: 12px; }
+.menu-actions { display: flex; flex-direction: column; align-items: center; }
+.pause-menu { text-align: center; }.pause-menu h2, .game-over-menu > h2 { margin: 4px 0; font-size: 34px; }.pause-menu .secondary-action { margin-top: 10px; }
+#iosPrompt { position: fixed; z-index: 110; top: 20%; left: 50%; display: none; width: min(320px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--surface-border); border-radius: 16px; background: #1a1a20; box-shadow: var(--shadow); text-align: center; transform: translateX(-50%); }
+#iosPrompt p { font-size: 13px; line-height: 1.5; } #iosPrompt button { min-height: 40px; padding: 8px 16px; border: 0; border-radius: 10px; color: white; background: var(--danger); }
+
+#offlineBanner { position: fixed; z-index: 200; top: 0; right: 0; left: 0; padding: calc(8px + env(safe-area-inset-top)) 16px 8px; color: #2b1a04; background: #f6b858; box-shadow: 0 3px 12px rgba(0,0,0,.25); font-size: 12px; font-weight: 700; text-align: center; }
+.toast { position: fixed; z-index: 210; bottom: 24px; left: 50%; display: none; max-width: calc(100vw - 32px); padding: 11px 15px; border: 1px solid var(--surface-border); border-radius: 12px; color: var(--text-color); background: #292932; box-shadow: var(--shadow); font-size: 13px; font-weight: 600; transform: translateX(-50%); }.toast.visible { display: block; animation: toastIn .25s ease-out; } @keyframes toastIn { from { opacity: 0; transform: translate(-50%,10px); } }
+
+body.nokia-mode { --accent: #2b2f1f; --accent-hover: #454b2e; --text-color: #2b2f1f; --text-muted: #454b2e; background: #9ead86; }
+body.nokia-mode * { font-family: VT323, monospace !important; border-radius: 0 !important; box-shadow: none !important; animation: none !important; }
+body.nokia-mode #startGameScreen, body.nokia-mode #gameOverScreen, body.nokia-mode #pauseScreen, body.nokia-mode .powerup-modal { background: #8ea377 !important; backdrop-filter: none; }
+body.nokia-mode .menu-container, body.nokia-mode .powerup-modal-content, body.nokia-mode .setting-row, body.nokia-mode .scoreboard li, body.nokia-mode .scoreboard-tabs, body.nokia-mode .mode-tabs { background: #9ead86 !important; border: 3px solid #2b2f1f !important; }
+body.nokia-mode .logo-container { display: none; }.nokia-ascii-logo { display: none; }
+body.nokia-mode .nokia-ascii-logo { display: block; margin: 0 0 15px; color: #1a1d14; font-size: 16px; line-height: 1.1; white-space: pre; }
+body.nokia-mode button { border: 2px solid #2b2f1f !important; color: #9ead86 !important; background: #2b2f1f !important; }
+body.nokia-mode .text-action { color: #2b2f1f !important; background: transparent !important; }
+body.nokia-mode #scoreboardModeTabs, body.nokia-mode [data-mode-panel="levels"], body.nokia-mode #nokiaModeButton { display: none !important; }
+body.nokia-mode [data-mode-panel="classic"] { display: block !important; }
+body.nokia-mode #gameCanvas { border: 8px solid #1a1d14; background: #a8bf8f; }
+body.nokia-mode .game-hud { color: #2b2f1f; }.nokia-mode .hud-chip, .nokia-mode .score-chip, .nokia-mode .pause-control { border: 2px solid #2b2f1f; color: #9ead86; background: #2b2f1f; }
+body.nokia-mode .setting-row span, body.nokia-mode .setting-row strong, body.nokia-mode .setting-row small { color: #9ead86 !important; }
+
+@media (max-width: 600px) {
+    .screen-inner { padding: 18px 12px; justify-content: flex-start; }
+    .logo-container { height: 58px; margin-top: 4px; margin-bottom: 12px; }
+    .menu-container { padding: 20px 16px; border-radius: 18px; }
+    .menu-heading { margin-bottom: 12px; }
+    .game-hud { padding: 10px; }
+    .score-chip { font-size: 20px; min-width: 60px; }
+    .hud-chip { min-height: 34px; padding: 6px 9px; font-size: 12px; }
+    .multiplier-chip { top: 51px; }
+    .pause-control { min-height: 34px; padding: 5px 9px; font-size: 12px; }
+    #gameCanvas { max-width: calc(100vw - 18px); max-height: calc(100vh - 18px); border-radius: 14px; }
+}
+@media (orientation: landscape) and (max-height: 550px) {
+    .game-hud { padding: 12px; }.score-chip { left: 12px; transform: none; }.multiplier-chip { top: 56px; left: 12px; transform: none; }.pause-control { margin-left: auto; }
+    #gameCanvas { max-width: calc(100vw - 200px); max-height: calc(100vh - 22px); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

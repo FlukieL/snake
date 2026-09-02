@@ -12,6 +12,7 @@ import { initAuth, submitCurrentScoreIfNeeded } from './auth.js';
 import { initInput } from './input.js';
 import { initPowerupInfo } from './powerupInfo.js';
 import { initLogoAnimation } from './logoAnimation.js';
+import { initSettingsUI } from './ui.js';
 import {
     initializeGame,
     togglePause,
@@ -26,9 +27,38 @@ function initScoreAnimationCleanup() {
     });
 }
 
+function initExitConfirmation() {
+    let onConfirm = null;
+
+    function closeExitConfirmation() {
+        dom.confirmExitModal.style.display = 'none';
+        onConfirm = null;
+    }
+
+    function requestExit(callback) {
+        onConfirm = callback;
+        dom.confirmExitModal.style.display = 'flex';
+        requestAnimationFrame(() => dom.cancelExitButton.focus());
+    }
+
+    dom.cancelExitButton?.addEventListener('click', closeExitConfirmation);
+    dom.confirmExitButton?.addEventListener('click', () => {
+        const callback = onConfirm;
+        closeExitConfirmation();
+        callback?.();
+    });
+    dom.confirmExitModal?.addEventListener('click', event => {
+        if (event.target === dom.confirmExitModal) closeExitConfirmation();
+    });
+
+    return requestExit;
+}
+
 function initMenuButtons() {
+    const requestExit = initExitConfirmation();
     dom.restartButton.addEventListener('click', () => {
         dom.gameOverScreen.style.display = 'none';
+        dom.gameHud.style.display = 'flex';
         submitCurrentScoreIfNeeded();
         initializeGame(state.gameMode);
     });
@@ -54,7 +84,7 @@ function initMenuButtons() {
 
     if (dom.mainMenuPauseButton) {
         dom.mainMenuPauseButton.addEventListener('click', () => {
-            exitToMainMenuFromPause(submitCurrentScoreIfNeeded);
+            requestExit(() => exitToMainMenuFromPause(submitCurrentScoreIfNeeded));
         });
     }
 }
@@ -199,6 +229,7 @@ function init() {
     initAuth();
     initInput();
     initPowerupInfo();
+    initSettingsUI();
     initLogoAnimation();
     initScoreAnimationCleanup();
     initMenuButtons();

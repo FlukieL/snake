@@ -28,6 +28,8 @@ function getActiveMenuScreen() {
     // instead of the modal's own "Got it" button. This was the cause of
     // navigation appearing to "stop working" after opening the power-up
     // info modal from the Levels Mode menu panel.
+    if (dom.confirmExitModal && dom.confirmExitModal.offsetParent !== null) return dom.confirmExitModal;
+    if (dom.settingsModal && dom.settingsModal.offsetParent !== null) return dom.settingsModal;
     if (dom.powerupInfoModal && dom.powerupInfoModal.offsetParent !== null) return dom.powerupInfoModal;
     if (state.gamePaused && dom.pauseScreen) return dom.pauseScreen;
     if (state.gameOver && dom.gameOverScreen) return dom.gameOverScreen;
@@ -121,12 +123,20 @@ function initFocusTracking() {
 
 function initKeyboard() {
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && !state.gameOver) {
-            togglePause();
+        const activeMenuScreen = getActiveMenuScreen();
+
+        if (e.key === 'Escape') {
+            if (dom.confirmExitModal?.offsetParent !== null) {
+                dom.cancelExitButton?.click();
+            } else if (dom.settingsModal?.offsetParent !== null) {
+                dom.settingsCloseButton?.click();
+            } else if (dom.powerupInfoModal?.offsetParent !== null) {
+                dom.powerupInfoCloseButton?.click();
+            } else if (!state.gameOver) {
+                togglePause();
+            }
             return;
         }
-
-        const activeMenuScreen = getActiveMenuScreen();
 
         // Whenever any menu screen is showing, arrow keys/WASD navigate its
         // buttons instead of queuing a snake movement (which would have no

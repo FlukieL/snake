@@ -7,8 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <!-- Makes the iOS status bar transparent so it shows the page's own dark
-         background instead of defaulting to white when installed as a PWA. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -17,7 +15,6 @@
     <link rel="stylesheet" href="/style.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Open Graph meta tags -->
     <meta property="og:title" content="Snake Game">
     <meta property="og:description" content="Snake Game made by Luke Harper">
     <meta property="og:image" content="/logo.jpg">
@@ -26,135 +23,180 @@
 </head>
 
 <body>
-    <div id="offlineBanner" style="display:none;">📡 You're offline — leaderboard & score submission are unavailable until you reconnect.</div>
+    <div id="offlineBanner" role="status" style="display:none;">You're offline — leaderboard and score submission will return when you reconnect.</div>
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <div id="startGameScreen">
         <div class="screen-inner">
-        <div class="logo-container">
-            <canvas id="logoAnimationCanvas" aria-label="Live Snake demo spelling SNAKE"></canvas>
-        </div>
-        <div class="menu-container">
-            <pre id="nokiaAsciiLogo" class="nokia-ascii-logo"></pre>
-
-            <div class="mode-tabs" id="scoreboardModeTabs">
-                <button class="mode-tab-btn active" data-mode="classic">Classic</button>
-                <button class="mode-tab-btn" data-mode="levels">Levels</button>
+            <div class="logo-container">
+                <canvas id="logoAnimationCanvas" aria-label="Animated Snake logo"></canvas>
             </div>
-
-            <div class="mode-panel" data-mode-panel="classic">
-                <button id="startButton" class="menu-button">Play Classic</button>
-                <div class="scoreboard">
-                    <h2>High Scores</h2>
-                    <div class="scoreboard-tabs" data-target="highScoreList" data-mode="classic">
-                        <button class="tab-btn active" data-period="alltime">All Time</button>
-                        <button class="tab-btn" data-period="weekly">This Week</button>
-                    </div>
-                    <div class="top-player-banner" id="homeTopPlayerBanner"></div>
-                    <ol id="highScoreList"><li class="loading">Loading&hellip;</li></ol>
+            <main class="menu-container main-menu" aria-label="Snake main menu">
+                <div class="menu-heading">
+                    <span class="eyebrow">ARCADE CLASSIC</span>
+                    <button id="settingsButton" class="icon-button" aria-label="Open settings" title="Settings">⚙</button>
                 </div>
-            </div>
+                <pre id="nokiaAsciiLogo" class="nokia-ascii-logo"></pre>
 
-            <div class="mode-panel" data-mode-panel="levels" style="display:none;">
-                <button id="startLevelsButton" class="menu-button levels-button">Play Levels</button>
-                <p class="mode-description">Eat 5 fruits to advance. Obstacles and speed increase each level. 3 lives to start, +1 life every 30 points. Watch for power-ups!</p>
-                <button id="powerupInfoButton" class="powerup-info-button">❓ What do power-ups do?</button>
-                <div class="scoreboard">
-                    <h2>Levels High Scores</h2>
-                    <div class="scoreboard-tabs" data-target="levelsHighScoreList" data-mode="levels">
-                        <button class="tab-btn active" data-period="alltime">All Time</button>
-                        <button class="tab-btn" data-period="weekly">This Week</button>
-                    </div>
-                    <div class="top-player-banner" id="homeLevelsTopPlayerBanner"></div>
-                    <ol id="levelsHighScoreList"><li class="loading">Loading&hellip;</li></ol>
+                <div class="mode-tabs" id="scoreboardModeTabs" aria-label="Game mode">
+                    <button class="mode-tab-btn active" data-mode="classic">Classic</button>
+                    <button class="mode-tab-btn" data-mode="levels">Levels</button>
                 </div>
-            </div>
 
-            <div class="button-group">
-                <button id="muteMusicButton" class="mute-button">Mute Music</button>
-                <button id="muteEffectsButton" class="mute-button">Mute Effects</button>
-            </div>
-            <button id="nokiaModeButton" class="nokia-toggle-button">📱 Nokia Mode: Off</button>
-            <button id="installPwaButton" class="install-pwa-button" style="display:none;">📲 Install Snake</button>
-            <div class="links">
-                <a href="https://github.com/FlukieL/snake" target="_blank" rel="noopener">GitHub Repository</a>
-                <a href="https://links.lukeharper.co.uk" target="_blank" rel="noopener">Links Page</a>
-            </div>
-            <div class="creator-info">Created by Luke Harper with AI</div>
-        </div>
+                <section class="mode-panel" data-mode-panel="classic">
+                    <button id="startButton" class="menu-button primary-action">Play Classic <span aria-hidden="true">→</span></button>
+                    <p class="controls-hint">Use arrow keys, WASD, swipe, or a controller to steer.</p>
+                    <div class="scoreboard">
+                        <div class="section-heading">
+                            <h2>High Scores</h2>
+                            <span class="section-subtitle">Global</span>
+                        </div>
+                        <div class="scoreboard-tabs" data-target="highScoreList" data-mode="classic">
+                            <button class="tab-btn active" data-period="alltime">All Time</button>
+                            <button class="tab-btn" data-period="weekly">This Week</button>
+                        </div>
+                        <div class="top-player-banner" id="homeTopPlayerBanner"></div>
+                        <ol id="highScoreList" aria-live="polite"><li class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></li></ol>
+                    </div>
+                </section>
+
+                <section class="mode-panel" data-mode-panel="levels" style="display:none;">
+                    <button id="startLevelsButton" class="menu-button primary-action levels-button">Play Levels <span aria-hidden="true">→</span></button>
+                    <p class="mode-description">Eat five fruits to advance through increasingly fast obstacle courses. Start with three lives and hunt power-ups.</p>
+                    <button id="powerupInfoButton" class="powerup-info-button">Power-up guide <span aria-hidden="true">↗</span></button>
+                    <div class="scoreboard">
+                        <div class="section-heading">
+                            <h2>Levels High Scores</h2>
+                            <span class="section-subtitle">Global</span>
+                        </div>
+                        <div class="scoreboard-tabs" data-target="levelsHighScoreList" data-mode="levels">
+                            <button class="tab-btn active" data-period="alltime">All Time</button>
+                            <button class="tab-btn" data-period="weekly">This Week</button>
+                        </div>
+                        <div class="top-player-banner" id="homeLevelsTopPlayerBanner"></div>
+                        <ol id="levelsHighScoreList" aria-live="polite"><li class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></li></ol>
+                    </div>
+                </section>
+
+                <div class="links">
+                    <a href="https://github.com/FlukieL/snake" target="_blank" rel="noopener">GitHub</a>
+                    <span aria-hidden="true">•</span>
+                    <a href="https://links.lukeharper.co.uk" target="_blank" rel="noopener">More from Luke</a>
+                </div>
+                <div class="creator-info">Created by Luke Harper with AI</div>
+            </main>
         </div>
     </div>
 
-    <div id="scoreCounter">0</div>
-    <div id="multiplierBadge" style="display:none;"></div>
-    <div id="levelBadge" style="display:none;">Level 1</div>
-    <div id="livesBadge" style="display:none;"></div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="gameHud" class="game-hud" aria-label="Game status">
+        <div id="statusCluster" class="status-cluster">
+            <div id="levelBadge" class="hud-chip" style="display:none;">Level 1</div>
+            <div id="livesBadge" class="hud-chip lives-chip" style="display:none;"></div>
+        </div>
+        <div id="scoreCounter" class="score-chip" aria-live="polite" aria-label="Score">0</div>
+        <div id="multiplierBadge" class="hud-chip multiplier-chip" style="display:none;"></div>
+        <button id="pauseButton" class="pause-control" aria-label="Pause game"><span aria-hidden="true">Ⅱ</span> Pause</button>
+    </div>
+    <canvas id="gameCanvas" aria-label="Snake game board. Use arrow keys, WASD, swipe gestures, or a controller to direct the snake."></canvas>
 
-    <div id="powerupInfoModal" class="powerup-modal" style="display:none;">
+    <div id="powerupInfoModal" class="powerup-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="powerupModalTitle">
         <div class="powerup-modal-content">
-            <h2>Power-Ups</h2>
+            <span class="eyebrow">LEVELS MODE</span>
+            <h2 id="powerupModalTitle">Power-ups</h2>
             <ul id="powerupInfoList" class="powerup-info-list"></ul>
-            <button id="powerupInfoCloseButton">Got it</button>
+            <button id="powerupInfoCloseButton" class="menu-button">Got it</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="powerup-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+        <div class="powerup-modal-content settings-content">
+            <div class="modal-heading-row">
+                <div><span class="eyebrow">PREFERENCES</span><h2 id="settingsModalTitle">Settings</h2></div>
+                <button id="settingsCloseButton" class="icon-button" aria-label="Close settings">×</button>
+            </div>
+            <div class="settings-list">
+                <button id="muteMusicButton" class="setting-row"><span><strong>Music</strong><small>Background soundtrack</small></span><span class="setting-value">On</span></button>
+                <button id="muteEffectsButton" class="setting-row"><span><strong>Sound effects</strong><small>Fruit, power-ups and game events</small></span><span class="setting-value">On</span></button>
+                <button id="nokiaModeButton" class="setting-row"><span><strong>Nokia mode</strong><small>Retro LCD visuals and sound</small></span><span class="setting-value">Off</span></button>
+                <button id="installPwaButton" class="setting-row install-pwa-button" style="display:none;"><span><strong>Install Snake</strong><small>Play from your home screen</small></span><span aria-hidden="true">↗</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmExitModal" class="powerup-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirmExitTitle">
+        <div class="powerup-modal-content confirmation-content">
+            <span class="eyebrow">END RUN?</span>
+            <h2 id="confirmExitTitle">Leave this game?</h2>
+            <p>Your current score will be lost.</p>
+            <div class="modal-actions">
+                <button id="cancelExitButton" class="secondary-action">Keep Playing</button>
+                <button id="confirmExitButton" class="danger-action">Exit to Menu</button>
+            </div>
         </div>
     </div>
 
     <div id="gameOverScreen">
         <div class="screen-inner">
-        <div class="menu-container">
-            <h2>Game Over</h2>
-            <p>Score: <span id="finalScore"></span></p>
-            <p id="finalLevel" class="final-level" style="display:none;">Reached Level <span id="finalLevelValue"></span></p>
-
-            <div class="scoreboard" data-scoreboard="classic">
-                <div class="scoreboard-tabs" data-target="gameOverHighScoreList" data-mode="classic">
-                    <button class="tab-btn active" data-period="alltime">All Time</button>
-                    <button class="tab-btn" data-period="weekly">This Week</button>
+            <main class="menu-container game-over-menu" aria-label="Game over">
+                <span class="eyebrow">RUN COMPLETE</span>
+                <h2 aria-live="assertive">Game Over</h2>
+                <div class="final-score-card">
+                    <span>Final score</span>
+                    <strong id="finalScore">0</strong>
+                    <p id="finalLevel" class="final-level" style="display:none;">Reached Level <span id="finalLevelValue"></span></p>
                 </div>
-                <div class="top-player-banner" id="gameOverTopPlayerBanner"></div>
-                <ol id="gameOverHighScoreList"></ol>
-            </div>
 
-            <div class="scoreboard" data-scoreboard="levels" style="display:none;">
-                <div class="scoreboard-tabs" data-target="levelsGameOverHighScoreList" data-mode="levels">
-                    <button class="tab-btn active" data-period="alltime">All Time</button>
-                    <button class="tab-btn" data-period="weekly">This Week</button>
+                <div class="scoreboard" data-scoreboard="classic">
+                    <div class="section-heading"><h2>High Scores</h2><span class="section-subtitle">Global</span></div>
+                    <div class="scoreboard-tabs" data-target="gameOverHighScoreList" data-mode="classic">
+                        <button class="tab-btn active" data-period="alltime">All Time</button>
+                        <button class="tab-btn" data-period="weekly">This Week</button>
+                    </div>
+                    <div class="top-player-banner" id="gameOverTopPlayerBanner"></div>
+                    <ol id="gameOverHighScoreList" aria-live="polite"></ol>
                 </div>
-                <div class="top-player-banner" id="gameOverLevelsTopPlayerBanner"></div>
-                <ol id="levelsGameOverHighScoreList"></ol>
-            </div>
+                <div class="scoreboard" data-scoreboard="levels" style="display:none;">
+                    <div class="section-heading"><h2>Levels High Scores</h2><span class="section-subtitle">Global</span></div>
+                    <div class="scoreboard-tabs" data-target="levelsGameOverHighScoreList" data-mode="levels">
+                        <button class="tab-btn active" data-period="alltime">All Time</button>
+                        <button class="tab-btn" data-period="weekly">This Week</button>
+                    </div>
+                    <div class="top-player-banner" id="gameOverLevelsTopPlayerBanner"></div>
+                    <ol id="levelsGameOverHighScoreList" aria-live="polite"></ol>
+                </div>
 
-            <div id="googleSignInContainer"></div>
-            <div id="signedInAs" style="display:none;"></div>
-            <button id="submitScoreButton" disabled>Sign in with Google to submit</button>
-            <button id="restartButton">Play Again</button>
-            <button id="mainMenuButton">Main Menu</button>
-            <button id="muteMusicGameOverButton" class="mute-button">Mute Music</button>
-            <button id="muteEffectsGameOverButton" class="mute-button">Mute Effects</button>
-        </div>
+                <div class="sign-in-card">
+                    <div id="googleSignInContainer"></div>
+                    <div id="signedInAs" style="display:none;"></div>
+                    <button id="submitScoreButton" class="secondary-action" disabled>Sign in with Google to submit</button>
+                </div>
+                <div class="menu-actions">
+                    <button id="restartButton" class="menu-button primary-action">Play Again <span aria-hidden="true">→</span></button>
+                    <button id="mainMenuButton" class="text-action">Main Menu</button>
+                    <button id="settingsGameOverButton" class="text-action">Settings</button>
+                </div>
+            </main>
         </div>
     </div>
 
     <div id="pauseScreen">
         <div class="screen-inner">
-        <div class="menu-container">
-            <h2>Paused</h2>
-            <button id="resumeButton" class="menu-button">Resume</button>
-            <button id="muteMusicPauseButton" class="mute-button">Mute Music</button>
-            <button id="muteEffectsPauseButton" class="mute-button">Mute Effects</button>
-            <button id="nokiaModePauseButton" class="nokia-toggle-button">📱 Nokia Mode: Off</button>
-            <button id="mainMenuPauseButton">Exit to Main Menu</button>
-        </div>
+            <main class="menu-container pause-menu" aria-label="Paused game">
+                <span class="eyebrow">GAME PAUSED</span>
+                <h2>Paused</h2>
+                <p>Take a breath. Your run is waiting.</p>
+                <button id="resumeButton" class="menu-button primary-action">Resume <span aria-hidden="true">→</span></button>
+                <button id="settingsPauseButton" class="secondary-action">Settings</button>
+                <button id="mainMenuPauseButton" class="text-action danger-text">Exit to Main Menu</button>
+            </main>
         </div>
     </div>
 
-    <button id="pauseButton">Pause</button>
-
-    <div id="iosPrompt">
+    <div id="iosPrompt" role="dialog" aria-modal="true">
         <p>To install Snake, tap Safari's Share button, then select “Add to Home Screen”.</p>
         <button id="dismissPrompt">Dismiss</button>
     </div>
 
     <script src="/js/main.js" type="module"></script>
 </body>
-
 </html>

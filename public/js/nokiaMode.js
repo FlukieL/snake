@@ -15,15 +15,13 @@ function toggleNokiaMode() {
     updateNokiaModeUI();
     playNokiaToggleSound(state.nokiaMode);
 
-    // Turning Nokia Mode on mutes the music by default, matching the silent/beeps-only
-    // feel of the original handset. Turning it off does not automatically unmute.
+    // Retain the intentionally quiet, beeps-only handset feel.
     if (state.nokiaMode && !state.musicMuted) {
         toggleMusicMute();
     }
 }
 
 export function initNokiaMode() {
-    if (dom.nokiaModeButton) dom.nokiaModeButton.addEventListener('click', toggleNokiaMode);
-    if (dom.nokiaModePauseButton) dom.nokiaModePauseButton.addEventListener('click', toggleNokiaMode);
+    dom.nokiaModeButton?.addEventListener('click', toggleNokiaMode);
     updateNokiaModeUI();
 }
