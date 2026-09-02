@@ -16,3 +16,33 @@ not_found_handling = "none"
 binding = "DB"
 database_name = "snake-scores"
 database_id = "fee8890c-6e35-459e-b54f-1398a0e12301"
+
+# Production writes to the "scores" table.
+[vars]
+SCORES_TABLE = "scores"
+
+# ---------------------------------------------------------------------------
+# Development environment
+# Deployed from the `development` git branch to a separate Worker, routed at
+# snake.dev.lukeharper.co.uk. Uses the SAME D1 database as production, but
+# writes/reads a separate "scores_dev" table so test data never mixes with
+# real leaderboard data.
+# ---------------------------------------------------------------------------
+[env.development]
+name = "snake-dev"
+routes = [
+  { pattern = "snake.dev.lukeharper.co.uk", custom_domain = true }
+]
+
+[env.development.assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "none"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "snake-scores"
+database_id = "fee8890c-6e35-459e-b54f-1398a0e12301"
+
+[env.development.vars]
+SCORES_TABLE = "scores_dev"

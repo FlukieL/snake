@@ -5,10 +5,14 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "dev:development": "wrangler dev --env development",
     "deploy": "wrangler deploy",
+    "deploy:development": "wrangler deploy --env development",
     "db:create": "wrangler d1 create snake-scores",
     "db:migrate:local": "wrangler d1 execute snake-scores --local --file=./schema.sql",
-    "db:migrate:remote": "wrangler d1 execute snake-scores --remote --file=./schema.sql"
+    "db:migrate:remote": "wrangler d1 execute snake-scores --remote --file=./schema.sql",
+    "db:migrate:dev:local": "wrangler d1 execute snake-scores --local --file=./schema.dev.sql",
+    "db:migrate:dev:remote": "wrangler d1 execute snake-scores --remote --file=./schema.dev.sql"
   },
   "devDependencies": {
     "wrangler": "^3.90.0"

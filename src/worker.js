@@ -109,20 +109,28 @@ function sanitizeName(rawName) {
 
 const VALID_MODES = ['classic', 'levels'];
 
-async function getTopScores(db, period, mode) {
+// Table name comes from a trusted environment variable (SCORES_TABLE, set in
+// wrangler.toml per-environment), never from user input, so it's safe to
+// interpolate directly into the SQL (D1/SQLite cannot bind identifiers).
+function getScoresTable(env) {
+    const table = env && env.SCORES_TABLE;
+    return table === 'scores_dev' ? 'scores_dev' : 'scores';
+}
+
+async function getTopScores(db, period, mode, table) {
     if (mode === 'levels') {
         // Levels mode ranks by score first, with highest level reached as a
         // tiebreaker (e.g. two players tied on score are ranked by whoever
         // got further before running out of lives).
         const query = period === 'weekly'
-            ? "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1"
-            : "SELECT name, score, level, created_at FROM scores WHERE mode = 'levels' ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1";
+            ? `SELECT name, score, level, created_at FROM ${table} WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1`
+            : `SELECT name, score, level, created_at FROM ${table} WHERE mode = 'levels' ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1`;
         const { results } = await db.prepare(query).bind(TOP_N).all();
         return results || [];
     }
     const query = period === 'weekly'
-        ? "SELECT name, score, created_at FROM scores WHERE mode = 'classic' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1"
-        : "SELECT name, score, created_at FROM scores WHERE mode = 'classic' ORDER BY score DESC, created_at ASC LIMIT ?1";
+        ? `SELECT name, score, created_at FROM ${table} WHERE mode = 'classic' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1`
+        : `SELECT name, score, created_at FROM ${table} WHERE mode = 'classic' ORDER BY score DESC, created_at ASC LIMIT ?1`;
     const { results } = await db.prepare(query).bind(TOP_N).all();
     return results || [];
 }
@@ -133,7 +141,8 @@ async function handleGetScores(request, env) {
         const period = url.searchParams.get('period') === 'weekly' ? 'weekly' : 'alltime';
         const modeParam = url.searchParams.get('mode');
         const mode = VALID_MODES.includes(modeParam) ? modeParam : 'classic';
-        const scores = await getTopScores(env.DB, period, mode);
+        const table = getScoresTable(env);
+        const scores = await getTopScores(env.DB, period, mode, table);
         return jsonResponse({ scores, period, mode });
     } catch (err) {
         return jsonResponse({ error: 'Failed to load scores' }, 500);
@@ -180,12 +189,13 @@ async function handlePostScore(request, env) {
     }
 
     try {
+        const table = getScoresTable(env);
         await env.DB
-            .prepare('INSERT INTO scores (name, score, mode, level) VALUES (?1, ?2, ?3, ?4)')
+            .prepare(`INSERT INTO ${table} (name, score, mode, level) VALUES (?1, ?2, ?3, ?4)`)
             .bind(name, score, mode, level)
             .run();
 
-        const scores = await getTopScores(env.DB, 'alltime', mode);
+        const scores = await getTopScores(env.DB, 'alltime', mode, table);
         return jsonResponse({ scores, mode }, 201);
     } catch (err) {
         return jsonResponse({ error: 'Failed to save score' }, 500);
