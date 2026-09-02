@@ -129,6 +129,9 @@ export const state = {
     nextBlinkTime: 0,
     blinkStartTime: -Infinity,
 
+    // Music volume is one of: 0 (Off), 0.25 (Low), 0.55 (Medium), 0.85 (High).
+    // `musicMuted` remains for compatibility with existing game/audio checks.
+    musicVolume: 0.55,
     musicMuted: false,
     effectsMuted: false,
     nokiaMode: false,

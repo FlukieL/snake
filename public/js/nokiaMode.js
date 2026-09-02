@@ -5,7 +5,7 @@ import { dom } from './dom.js';
 import { state } from './state.js';
 import { loadBoolState, saveState } from './storage.js';
 import { updateNokiaModeUI } from './ui.js';
-import { playNokiaToggleSound, toggleMusicMute } from './audio.js';
+import { playNokiaToggleSound, setMusicVolume } from './audio.js';
 
 state.nokiaMode = loadBoolState('nokiaMode', false);
 
@@ -15,9 +15,10 @@ function toggleNokiaMode() {
     updateNokiaModeUI();
     playNokiaToggleSound(state.nokiaMode);
 
-    // Retain the intentionally quiet, beeps-only handset feel.
-    if (state.nokiaMode && !state.musicMuted) {
-        toggleMusicMute();
+    // Retain the intentionally quiet, beeps-only handset feel without
+    // advancing the normal Off → Low → Medium → High volume cycle.
+    if (state.nokiaMode) {
+        setMusicVolume(0);
     }
 }
 

@@ -430,11 +430,38 @@ body.nokia-mode .logo-container { display: none; }.nokia-ascii-logo { display: n
 body.nokia-mode .nokia-ascii-logo { display: block; margin: 0 0 15px; color: #1a1d14; font-size: 16px; line-height: 1.1; white-space: pre; }
 body.nokia-mode button { border: 2px solid #2b2f1f !important; color: #9ead86 !important; background: #2b2f1f !important; }
 body.nokia-mode .text-action { color: #2b2f1f !important; background: transparent !important; }
-body.nokia-mode #scoreboardModeTabs, body.nokia-mode [data-mode-panel="levels"], body.nokia-mode #nokiaModeButton { display: none !important; }
+body.nokia-mode #scoreboardModeTabs, body.nokia-mode [data-mode-panel="levels"] { display: none !important; }
 body.nokia-mode [data-mode-panel="classic"] { display: block !important; }
 body.nokia-mode #gameCanvas { border: 8px solid #1a1d14; background: #a8bf8f; }
 body.nokia-mode .game-hud { color: #2b2f1f; }.nokia-mode .hud-chip, .nokia-mode .score-chip, .nokia-mode .pause-control { border: 2px solid #2b2f1f; color: #9ead86; background: #2b2f1f; }
-body.nokia-mode .setting-row span, body.nokia-mode .setting-row strong, body.nokia-mode .setting-row small { color: #9ead86 !important; }
+/* Settings rows remain readable/actionable in Nokia Mode. Unlike the dark
+   terminal-style buttons, they sit on the handset's light LCD surface. */
+body.nokia-mode .settings-content .setting-row {
+    color: #2b2f1f !important;
+    border: 3px solid #2b2f1f !important;
+    background: #9ead86 !important;
+}
+body.nokia-mode .settings-content .setting-row:hover,
+body.nokia-mode .settings-content .setting-row:focus-visible {
+    color: #9ead86 !important;
+    background: #2b2f1f !important;
+}
+body.nokia-mode .settings-content .setting-row span,
+body.nokia-mode .settings-content .setting-row strong,
+body.nokia-mode .settings-content .setting-row small {
+    color: inherit !important;
+}
+body.nokia-mode .settings-content .setting-value {
+    color: #2b2f1f !important;
+    font-weight: 700;
+}
+body.nokia-mode .settings-content .setting-row.muted .setting-value {
+    color: #7b1e1e !important;
+}
+body.nokia-mode .settings-content .setting-row:hover .setting-value,
+body.nokia-mode .settings-content .setting-row:focus-visible .setting-value {
+    color: #9ead86 !important;
+}
 
 @media (max-width: 600px) {
     .screen-inner { padding: 18px 12px; justify-content: flex-start; }

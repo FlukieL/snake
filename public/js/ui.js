@@ -13,7 +13,14 @@ function setSettingValue(button, value, isMuted = false) {
 }
 
 export function updateMuteButtonUI() {
-    setSettingValue(dom.muteMusicButton, state.musicMuted ? 'Off' : 'On', state.musicMuted);
+    const musicLabel = state.musicVolume === 0
+        ? 'Off'
+        : state.musicVolume === 0.25
+            ? 'Low'
+            : state.musicVolume === 0.85
+                ? 'High'
+                : 'Medium';
+    setSettingValue(dom.muteMusicButton, musicLabel, state.musicMuted);
     setSettingValue(dom.muteEffectsButton, state.effectsMuted ? 'Off' : 'On', state.effectsMuted);
 }
 

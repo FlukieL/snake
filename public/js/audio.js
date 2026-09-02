@@ -3,11 +3,30 @@
 
 import { dom } from './dom.js';
 import { state } from './state.js';
-import { loadBoolState, saveState } from './storage.js';
+import { loadBoolState, loadState, saveState } from './storage.js';
 import { updateMuteButtonUI } from './ui.js';
 
-state.musicMuted = loadBoolState('musicMuted', false);
+const MUSIC_VOLUME_LEVELS = [
+    { label: 'Off', value: 0 },
+    { label: 'Low', value: 0.25 },
+    { label: 'Medium', value: 0.55 },
+    { label: 'High', value: 0.85 }
+];
+
+const storedMusicVolume = Number(loadState('musicVolume', NaN));
+state.musicVolume = MUSIC_VOLUME_LEVELS.some(level => level.value === storedMusicVolume)
+    ? storedMusicVolume
+    : (loadBoolState('musicMuted', false) ? 0 : 0.55);
+state.musicMuted = state.musicVolume === 0;
 state.effectsMuted = loadBoolState('effectsMuted', false);
+
+function currentMusicLevel() {
+    return MUSIC_VOLUME_LEVELS.find(level => level.value === state.musicVolume) || MUSIC_VOLUME_LEVELS[2];
+}
+
+function applyMusicVolume() {
+    dom.gameMusic.volume = state.musicVolume;
+}
 
 let audioCtx = null;
 
@@ -122,12 +141,30 @@ export function applyMusicPitchForMode() {
     dom.gameMusic.webkitPreservesPitch = false;
 }
 
-export function toggleMusicMute() {
-    state.musicMuted = !state.musicMuted;
+export function setMusicVolume(volume) {
+    const level = MUSIC_VOLUME_LEVELS.find(candidate => candidate.value === volume) || MUSIC_VOLUME_LEVELS[2];
+    state.musicVolume = level.value;
+    state.musicMuted = level.value === 0;
+    saveState('musicVolume', state.musicVolume);
     saveState('musicMuted', state.musicMuted);
+    applyMusicVolume();
     updateMuteButtonUI();
-    if (state.musicMuted) dom.gameMusic.pause();
-    else if (isGameplayActive()) dom.gameMusic.play().catch(() => {});
+
+    if (state.musicMuted) {
+        dom.gameMusic.pause();
+    } else if (isGameplayActive()) {
+        dom.gameMusic.play().catch(() => {});
+    }
+}
+
+export function cycleMusicVolume() {
+    const currentIndex = MUSIC_VOLUME_LEVELS.findIndex(level => level.value === state.musicVolume);
+    const nextLevel = MUSIC_VOLUME_LEVELS[(currentIndex + 1) % MUSIC_VOLUME_LEVELS.length];
+    setMusicVolume(nextLevel.value);
+}
+
+export function toggleMusicMute() {
+    cycleMusicVolume();
 }
 
 export function toggleEffectsMute() {
@@ -137,7 +174,12 @@ export function toggleEffectsMute() {
 }
 
 export function initAudioControls() {
+    applyMusicVolume();
     updateMuteButtonUI();
-    dom.muteMusicButton?.addEventListener('click', toggleMusicMute);
+    dom.muteMusicButton?.addEventListener('click', cycleMusicVolume);
     dom.muteEffectsButton?.addEventListener('click', toggleEffectsMute);
+}
+
+export function getMusicVolumeLabel() {
+    return currentMusicLevel().label;
 }
