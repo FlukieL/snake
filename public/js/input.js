@@ -65,6 +65,15 @@ function setMenuFocus(el) {
 // active. Called whenever a screen becomes visible (game over, pause) so
 // keyboard/gamepad navigation has an obvious, immediate starting point
 // rather than requiring an extra keypress first.
+export function clearMenuFocus() {
+    document.querySelectorAll('.' + MENU_FOCUS_CLASS).forEach(el => {
+        el.classList.remove(MENU_FOCUS_CLASS);
+    });
+    if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+    }
+}
+
 export function focusFirstMenuItem() {
     const screen = getActiveMenuScreen();
     const items = getMenuFocusables(screen);
@@ -97,6 +106,10 @@ function moveMenuFocus(delta) {
     const items = getMenuFocusables(screen);
     if (!items.length) return;
     const currentIndex = items.indexOf(document.activeElement);
+    if (currentIndex === -1 && screen === dom.startGameScreen) {
+        focusFirstMenuItem();
+        return;
+    }
     const nextIndex = currentIndex === -1
         ? 0
         : (currentIndex + delta + items.length) % items.length;

@@ -32,10 +32,6 @@
                 <canvas id="logoAnimationCanvas" aria-label="Animated Snake logo"></canvas>
             </div>
             <main class="menu-container main-menu" aria-label="Snake main menu">
-                <div class="menu-heading">
-                    <span class="eyebrow">ARCADE CLASSIC</span>
-                    <button id="settingsButton" class="icon-button" aria-label="Open settings" title="Settings">⚙</button>
-                </div>
                 <pre id="nokiaAsciiLogo" class="nokia-ascii-logo"></pre>
 
                 <div class="mode-tabs" id="scoreboardModeTabs" aria-label="Game mode">
@@ -78,6 +74,8 @@
                     </div>
                 </section>
 
+                <button id="settingsButton" class="menu-settings-button text-action" aria-label="Open settings"><span aria-hidden="true">⚙</span> Settings</button>
+
                 <div class="links">
                     <a href="https://github.com/FlukieL/snake" target="_blank" rel="noopener">GitHub</a>
                     <span aria-hidden="true">•</span>
@@ -118,6 +116,7 @@
                 <button id="muteMusicButton" class="setting-row"><span><strong>Music</strong><small>Background soundtrack</small></span><span class="setting-value">On</span></button>
                 <button id="muteEffectsButton" class="setting-row"><span><strong>Sound effects</strong><small>Fruit, power-ups and game events</small></span><span class="setting-value">On</span></button>
                 <button id="nokiaModeButton" class="setting-row"><span><strong>Nokia mode</strong><small>Retro LCD visuals and sound</small></span><span class="setting-value">Off</span></button>
+                <button id="vibrationButton" class="setting-row" style="display:none;"><span><strong>Vibration</strong><small>Haptic feedback for game events</small></span><span class="setting-value">On</span></button>
                 <button id="installPwaButton" class="setting-row install-pwa-button" style="display:none;"><span><strong>Install Snake</strong><small>Play from your home screen</small></span><span aria-hidden="true">↗</span></button>
             </div>
         </div>

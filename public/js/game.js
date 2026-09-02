@@ -16,8 +16,9 @@ import {
 } from './audio.js';
 import { renderScoreboard, fetchHighScores, realignVisibleSliders } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
-import { focusFirstMenuItem } from './input.js';
+import { clearMenuFocus, focusFirstMenuItem } from './input.js';
 import { updateOfflineUI } from './offline.js';
+import { vibrateDeath, vibrateFruit, vibratePowerup } from './haptics.js';
 import {
     resetLevelsState,
     onFruitEatenInLevelsMode,
@@ -130,12 +131,14 @@ function update() {
     const hitObstacle = checkObstacleCollision(head);
     if ((hitSelf || hitObstacle) && !isInvincible()) {
         if (loseLifeOrGameOver()) {
+            vibrateDeath();
             playLoseLifeSound();
             respawnSnakeAfterLifeLost();
             updateLivesBadge();
             updateMultiplierBadge();
             return;
         }
+        vibrateDeath();
         triggerGameOver();
         return;
     }
@@ -145,6 +148,7 @@ function update() {
     // Power-up pickup (Levels Mode only)
     const collected = collectPowerupIfPresent(head);
     if (collected) {
+        vibratePowerup();
         playPowerupSound();
         if (collected.type === 'multiplier') updateMultiplierBadge();
     }
@@ -154,6 +158,7 @@ function update() {
         state.score += points;
         dom.scoreCounter.textContent = state.score;
         dom.scoreCounter.classList.add('animateScore');
+        vibrateFruit();
         playEatSound();
         triggerDigestionWave(state.food.type);
         // Eating fruit while a multiplier is active refreshes its timer back
@@ -444,14 +449,10 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
     if (dom.multiplierBadge) dom.multiplierBadge.style.display = 'none';
 
-    // Give keyboard/gamepad navigation an obvious, immediate starting point
-    // on the main menu too - without this, focus was left on whatever
-    // button had just been clicked (e.g. "Main Menu" on the Game Over
-    // screen, now hidden), and browsers are inconsistent/sometimes delayed
-    // about automatically blurring focus away from an element that just
-    // became display:none. That inconsistency was the root cause of
-    // navigation intermittently appearing to "stop working" after
-    // returning to the main menu - the first arrow-key press's focus
-    // calculation could be based on a stale, no-longer-visible element.
-    requestAnimationFrame(focusFirstMenuItem);
+    // A pointer exit should return to a visually neutral menu. Leaving the
+    // pause-screen button focused made Play look selected immediately, while
+    // the pointer could simultaneously hover a score tab. Clear that stale
+    // focus marker; the first keyboard/controller navigation input restores
+    // focus to the active mode's Play button via moveMenuFocus().
+    requestAnimationFrame(clearMenuFocus);
 }

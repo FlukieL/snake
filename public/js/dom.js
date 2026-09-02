@@ -55,6 +55,7 @@ export const dom = {
     muteMusicButton: document.getElementById('muteMusicButton'),
     muteEffectsButton: document.getElementById('muteEffectsButton'),
     nokiaModeButton: document.getElementById('nokiaModeButton'),
+    vibrationButton: document.getElementById('vibrationButton'),
 
     offlineBanner: document.getElementById('offlineBanner'),
     installPwaButton: document.getElementById('installPwaButton')

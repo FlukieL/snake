@@ -161,7 +161,7 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
     font-weight: 700;
     transition: color .2s ease, background-color .2s ease;
 }
-.mode-tab-btn:hover, .tab-btn:hover { color: var(--text-color); background: rgba(255,255,255,.05); }
+.mode-tab-btn:hover, .tab-btn:hover { color: var(--text-color); background: transparent; }
 .mode-tab-btn.active, .tab-btn.active { color: #111118; }
 .tab-slider {
     position: absolute;
@@ -197,7 +197,18 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
     transform: translateY(-2px);
     box-shadow: 0 12px 28px var(--accent-soft);
 }
-.primary-action span { float: right; font-size: 19px; line-height: 14px; }
+.primary-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.primary-action span {
+    position: absolute;
+    right: 16px;
+    font-size: 19px;
+    line-height: 14px;
+}
 .controls-hint, .mode-description {
     margin: 10px 8px 20px;
     color: var(--text-muted);
@@ -263,10 +274,24 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
 .rank-badge { display: inline-grid; width: 19px; height: 19px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #181817; font-size: 10px; font-weight: 700; }
 .rank-silver { background: #c6c7d0; }.rank-bronze { background: #d59867; }
 
-.links { display: flex; justify-content: center; gap: 9px; margin-top: 20px; color: var(--text-muted); font-size: 12px; }
+.menu-settings-button {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 8px 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.menu-settings-button span { margin-right: 4px; }
+.links { display: flex; justify-content: center; gap: 9px; margin-top: 12px; color: var(--text-muted); font-size: 12px; }
 .links a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .links a:hover { text-decoration: underline; }
-.creator-info { margin-top: 10px; color: var(--text-muted); font-size: 10px; }
+.creator-info {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-align: center;
+}
 
 #gameCanvas {
     position: absolute;
@@ -415,7 +440,18 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
 #googleSignInContainer { display: flex; justify-content: center; margin-bottom: 8px; }
 #signedInAs { margin-bottom: 8px; color: var(--text-muted); font-size: 12px; }
 .menu-actions { display: flex; flex-direction: column; align-items: center; }
-.pause-menu { text-align: center; }.pause-menu h2, .game-over-menu > h2 { margin: 4px 0; font-size: 34px; }.pause-menu .secondary-action { margin-top: 10px; }
+.pause-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.pause-menu > * { text-align: center; }
+.pause-menu .eyebrow,
+.pause-menu h2,
+.pause-menu p { align-self: center; }
+.pause-menu h2, .game-over-menu > h2 { margin: 4px 0; font-size: 34px; }
+.pause-menu .secondary-action { margin-top: 10px; }
 #iosPrompt { position: fixed; z-index: 110; top: 20%; left: 50%; display: none; width: min(320px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--surface-border); border-radius: 16px; background: #1a1a20; box-shadow: var(--shadow); text-align: center; transform: translateX(-50%); }
 #iosPrompt p { font-size: 13px; line-height: 1.5; } #iosPrompt button { min-height: 40px; padding: 8px 16px; border: 0; border-radius: 10px; color: white; background: var(--danger); }
 
@@ -427,7 +463,38 @@ body.nokia-mode * { font-family: VT323, monospace !important; border-radius: 0 !
 body.nokia-mode #startGameScreen, body.nokia-mode #gameOverScreen, body.nokia-mode #pauseScreen, body.nokia-mode .powerup-modal { background: #8ea377 !important; backdrop-filter: none; }
 body.nokia-mode .menu-container, body.nokia-mode .powerup-modal-content, body.nokia-mode .setting-row, body.nokia-mode .scoreboard li, body.nokia-mode .scoreboard-tabs, body.nokia-mode .mode-tabs { background: #9ead86 !important; border: 3px solid #2b2f1f !important; }
 body.nokia-mode .logo-container { display: none; }.nokia-ascii-logo { display: none; }
-body.nokia-mode .nokia-ascii-logo { display: block; margin: 0 0 15px; color: #1a1d14; font-size: 16px; line-height: 1.1; white-space: pre; }
+body.nokia-mode .nokia-ascii-logo {
+    display: block;
+    width: 100%;
+    margin: 0 0 18px;
+    color: #1a1d14;
+    font-size: 23px;
+    line-height: 1.05;
+    text-align: center;
+    white-space: pre;
+}
+body.nokia-mode .mode-tab-btn,
+body.nokia-mode .tab-btn {
+    font-size: 19px;
+}
+body.nokia-mode .menu-button,
+body.nokia-mode .secondary-action,
+body.nokia-mode .danger-action,
+body.nokia-mode .text-action,
+body.nokia-mode .powerup-info-button {
+    font-size: 21px;
+}
+body.nokia-mode .controls-hint,
+body.nokia-mode .mode-description,
+body.nokia-mode .section-subtitle,
+body.nokia-mode .scoreboard li,
+body.nokia-mode .links,
+body.nokia-mode .creator-info {
+    font-size: 17px;
+}
+body.nokia-mode .scoreboard h2 {
+    font-size: 22px;
+}
 body.nokia-mode button { border: 2px solid #2b2f1f !important; color: #9ead86 !important; background: #2b2f1f !important; }
 body.nokia-mode .text-action { color: #2b2f1f !important; background: transparent !important; }
 body.nokia-mode #scoreboardModeTabs, body.nokia-mode [data-mode-panel="levels"] { display: none !important; }
@@ -436,10 +503,31 @@ body.nokia-mode #gameCanvas { border: 8px solid #1a1d14; background: #a8bf8f; }
 body.nokia-mode .game-hud { color: #2b2f1f; }.nokia-mode .hud-chip, .nokia-mode .score-chip, .nokia-mode .pause-control { border: 2px solid #2b2f1f; color: #9ead86; background: #2b2f1f; }
 /* Settings rows remain readable/actionable in Nokia Mode. Unlike the dark
    terminal-style buttons, they sit on the handset's light LCD surface. */
+body.nokia-mode .settings-content h2 {
+    font-size: 31px;
+}
+body.nokia-mode .settings-content .eyebrow {
+    font-size: 14px;
+}
+body.nokia-mode .settings-content .icon-button {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+}
 body.nokia-mode .settings-content .setting-row {
+    min-height: 82px;
     color: #2b2f1f !important;
     border: 3px solid #2b2f1f !important;
     background: #9ead86 !important;
+}
+body.nokia-mode .settings-content .setting-row strong {
+    font-size: 21px;
+}
+body.nokia-mode .settings-content .setting-row small {
+    font-size: 16px;
+}
+body.nokia-mode .settings-content .setting-value {
+    font-size: 19px;
 }
 body.nokia-mode .settings-content .setting-row:hover,
 body.nokia-mode .settings-content .setting-row:focus-visible {

@@ -16,7 +16,7 @@ const MUSIC_VOLUME_LEVELS = [
 const storedMusicVolume = Number(loadState('musicVolume', NaN));
 state.musicVolume = MUSIC_VOLUME_LEVELS.some(level => level.value === storedMusicVolume)
     ? storedMusicVolume
-    : (loadBoolState('musicMuted', false) ? 0 : 0.55);
+    : (loadBoolState('musicMuted', false) ? 0 : 0.25);
 state.musicMuted = state.musicVolume === 0;
 state.effectsMuted = loadBoolState('effectsMuted', false);
 

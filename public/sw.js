@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v52';
+const CACHE_VERSION = 'v53';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -21,6 +21,7 @@ const APP_SHELL = [
     '/js/offline.js',
     '/js/ui.js',
     '/js/audio.js',
+    '/js/haptics.js',
     '/js/nokiaMode.js',
     '/js/render.js',
     '/js/game.js',

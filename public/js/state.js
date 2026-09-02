@@ -131,10 +131,11 @@ export const state = {
 
     // Music volume is one of: 0 (Off), 0.25 (Low), 0.55 (Medium), 0.85 (High).
     // `musicMuted` remains for compatibility with existing game/audio checks.
-    musicVolume: 0.55,
+    musicVolume: 0.25,
     musicMuted: false,
     effectsMuted: false,
     nokiaMode: false,
+    vibrationEnabled: true,
 
     // True/false once initOfflineDetection() runs (see offline.js) - starts
     // as true so nothing is prematurely blocked before that init call.

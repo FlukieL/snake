@@ -6,6 +6,7 @@ import { dom } from './dom.js';
 import { state } from './state.js';
 import { initOfflineDetection } from './offline.js';
 import { initAudioControls } from './audio.js';
+import { initHaptics } from './haptics.js';
 import { initNokiaMode } from './nokiaMode.js';
 import { initLeaderboard } from './leaderboard.js';
 import { initAuth, submitCurrentScoreIfNeeded } from './auth.js';
@@ -224,6 +225,7 @@ function init() {
     // network requests at all.
     initOfflineDetection();
     initAudioControls();
+    initHaptics();
     initNokiaMode();
     initLeaderboard();
     initAuth();
