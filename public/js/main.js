@@ -106,7 +106,7 @@ function initMenuTilt() {
     }
 
     function applyTilt(event) {
-        if (document.visibilityState !== 'visible' || dom.startGameScreen.offsetParent === null) {
+        if (document.visibilityState !== 'visible' || getComputedStyle(dom.startGameScreen).display === 'none') {
             resetTilt();
             return;
         }
