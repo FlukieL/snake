@@ -90,6 +90,72 @@ function initMenuButtons() {
     }
 }
 
+function initMenuTilt() {
+    const menu = document.querySelector('.main-menu');
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const orientationEvent = window.DeviceOrientationEvent;
+    if (!menu || !orientationEvent || motionQuery.matches) return;
+
+    let listening = false;
+    let baseline = null;
+
+    function resetTilt() {
+        baseline = null;
+        menu.style.setProperty('--menu-tilt-x', '0deg');
+        menu.style.setProperty('--menu-tilt-y', '0deg');
+    }
+
+    function applyTilt(event) {
+        if (document.visibilityState !== 'visible' || dom.startGameScreen.offsetParent === null) {
+            resetTilt();
+            return;
+        }
+        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+
+        if (!baseline) {
+            baseline = { beta: event.beta, gamma: event.gamma };
+            return;
+        }
+
+        // Use relative movement rather than the device's absolute pose. This
+        // makes the resting position feel natural whether the phone is held
+        // upright or at a slight angle, while keeping the effect deliberately
+        // subtle (maximum 3 degrees on either axis).
+        const clamp = value => Math.max(-3, Math.min(3, value));
+        const tiltX = clamp((event.beta - baseline.beta) * -0.12);
+        const tiltY = clamp((event.gamma - baseline.gamma) * 0.12);
+        menu.style.setProperty('--menu-tilt-x', `${tiltX.toFixed(2)}deg`);
+        menu.style.setProperty('--menu-tilt-y', `${tiltY.toFixed(2)}deg`);
+    }
+
+    function startListening() {
+        if (listening) return;
+        listening = true;
+        window.addEventListener('deviceorientation', applyTilt, { passive: true });
+    }
+
+    // iOS requires explicit permission from a user gesture. Other compatible
+    // browsers expose orientation data directly, so start immediately there.
+    if (typeof orientationEvent.requestPermission === 'function') {
+        document.addEventListener('pointerdown', () => {
+            orientationEvent.requestPermission()
+                .then(permission => {
+                    if (permission === 'granted') startListening();
+                })
+                .catch(() => {});
+        }, { once: true, passive: true });
+    } else {
+        startListening();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') resetTilt();
+    });
+    motionQuery.addEventListener?.('change', event => {
+        if (event.matches) resetTilt();
+    });
+}
+
 function initPwaInstall() {
     const installButton = dom.installPwaButton;
     const iosPrompt = document.getElementById('iosPrompt');
@@ -235,6 +301,7 @@ function init() {
     initLogoAnimation();
     initScoreAnimationCleanup();
     initMenuButtons();
+    initMenuTilt();
     initPwaInstall();
     initServiceWorker();
 }

@@ -95,6 +95,9 @@ function renderHighScores(listElement, scores, mode) {
     scores.slice(1, 6).forEach((entry, i) => {
         const rank = i + 2;
         const li = document.createElement('li');
+        li.className = 'score-entry';
+        li.tabIndex = 0;
+        li.setAttribute('aria-label', `${entry.name}, rank ${rank}, ${mode === 'levels' ? `level ${entry.level}, score ${entry.score}` : `score ${entry.score}`}`);
 
         const badge = createRankBadge(rank);
         if (badge) li.appendChild(badge);
@@ -263,6 +266,22 @@ export function scheduleSliderRealignment() {
     });
 }
 
+function initScoreEntryInteractions() {
+    // Event delegation keeps pointer feedback working when score rows are
+    // replaced by a fresh render after changing a tab or refreshing scores.
+    document.addEventListener('pointerdown', event => {
+        const entry = event.target.closest('.scoreboard li.score-entry');
+        if (entry) entry.classList.add('score-entry-active');
+    });
+    ['pointerup', 'pointercancel'].forEach(type => {
+        window.addEventListener(type, () => {
+            document.querySelectorAll('.score-entry-active').forEach(entry => {
+                entry.classList.remove('score-entry-active');
+            });
+        });
+    });
+}
+
 export function initLeaderboardTabs() {
     document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
         const targetId = tabsEl.getAttribute('data-target');
@@ -349,6 +368,7 @@ export function initLeaderboard() {
     renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod.alltime, 'classic');
     renderScoreboard(dom.levelsHighScoreList, state.cachedLevelsScoresByPeriod.alltime, 'levels');
     renderScoreboard(dom.levelsGameOverHighScoreList, state.cachedLevelsScoresByPeriod.alltime, 'levels');
+    initScoreEntryInteractions();
     initLeaderboardTabs();
     initModeTabs();
     fetchHighScores('alltime', 'classic');

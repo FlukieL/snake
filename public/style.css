@@ -94,17 +94,23 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
 }
 
 .menu-container {
+    --menu-tilt-x: 0deg;
+    --menu-tilt-y: 0deg;
     width: min(410px, 100%);
     padding: 24px;
     border: 1px solid var(--surface-border);
     border-radius: 22px;
     background: linear-gradient(145deg, rgba(37, 37, 43, 0.96), rgba(21, 21, 27, 0.96));
     box-shadow: var(--shadow);
+    transform: perspective(900px) rotateX(var(--menu-tilt-x)) rotateY(var(--menu-tilt-y));
+    transform-style: preserve-3d;
+    transition: transform .16s ease-out;
+    will-change: transform;
     animation: cardEnter 0.46s ease-out backwards;
 }
 @keyframes cardEnter {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: perspective(900px) translateY(16px) rotateX(var(--menu-tilt-x)) rotateY(var(--menu-tilt-y)); }
+    to { opacity: 1; transform: perspective(900px) rotateX(var(--menu-tilt-x)) rotateY(var(--menu-tilt-y)); }
 }
 
 .menu-heading, .modal-heading-row, .section-heading {
@@ -188,27 +194,52 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
     width: 100%;
     border: 1px solid var(--accent);
     color: #0a0a0e;
-    background: var(--accent);
-    box-shadow: 0 8px 20px var(--accent-soft);
+    background: linear-gradient(115deg, var(--accent) 0%, var(--accent-hover) 50%, var(--accent) 100%);
+    background-size: 190% 100%;
+    box-shadow: 0 8px 20px var(--accent-soft), inset 0 1px rgba(255,255,255,.34);
 }
 .primary-action:hover, .menu-button:hover {
-    background: var(--accent-hover);
     border-color: var(--accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 28px var(--accent-soft);
+    background-position: 100% 0;
+    transform: translateY(-2px) scale(1.012);
+    box-shadow: 0 12px 28px var(--accent-soft), 0 0 22px var(--accent-soft), inset 0 1px rgba(255,255,255,.42);
+}
+.primary-action:active, .menu-button:active {
+    transform: translateY(1px) scale(.985);
+    box-shadow: 0 4px 12px var(--accent-soft), inset 0 2px 5px rgba(0,0,0,.16);
 }
 .primary-action {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    isolation: isolate;
+    overflow: hidden;
+}
+.primary-action::before {
+    position: absolute;
+    inset: -50% auto -50% -35%;
+    z-index: -1;
+    width: 30%;
+    content: '';
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.58), transparent);
+    transform: skewX(-22deg);
+    animation: playButtonShimmer 3.6s ease-in-out infinite;
+}
+.primary-action:hover::before { animation-duration: 1.25s; }
+@keyframes playButtonShimmer {
+    0%, 55% { translate: 0 0; opacity: 0; }
+    64% { opacity: .9; }
+    82%, 100% { translate: 510% 0; opacity: 0; }
 }
 .primary-action span {
     position: absolute;
     right: 16px;
     font-size: 19px;
     line-height: 14px;
+    transition: transform .2s ease;
 }
+.primary-action:hover span { transform: translateX(4px); }
 .controls-hint, .mode-description {
     margin: 10px 8px 20px;
     color: var(--text-muted);
@@ -242,6 +273,22 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
     border-radius: 10px;
     background: var(--surface-color);
     font-size: 13px;
+}
+.scoreboard li.score-entry {
+    cursor: default;
+    transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+.scoreboard li.score-entry:hover,
+.scoreboard li.score-entry:focus-visible,
+.scoreboard li.score-entry-active {
+    border-color: color-mix(in srgb, var(--accent) 68%, white);
+    background: linear-gradient(100deg, var(--accent-soft), var(--surface-strong));
+    box-shadow: 0 7px 16px rgba(0,0,0,.2), inset 3px 0 var(--accent);
+    transform: translateX(3px);
+    outline: none;
+}
+.scoreboard li.score-entry:active {
+    transform: translateX(1px) scale(.99);
 }
 .scoreboard li.loading, .scoreboard li.empty { justify-content: center; color: var(--text-muted); }
 .loading-dot {
@@ -656,4 +703,7 @@ body.nokia-mode .rank-bronze {
     .game-hud { padding: 12px; }.score-chip { left: 12px; transform: none; }.multiplier-chip { top: 56px; left: 12px; transform: none; }.pause-control { margin-left: auto; }
     #gameCanvas { max-width: calc(100vw - 200px); max-height: calc(100vh - 22px); }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) {
+    .menu-container { transform: none !important; will-change: auto; }
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
