@@ -246,6 +246,23 @@ export function realignVisibleSliders() {
     });
 }
 
+let sliderRealignmentQueued = false;
+
+// Screen and modal visibility changes can defer layout until the next paint.
+// Measure on the following frame after that paint, ensuring offset dimensions
+// are valid rather than leaving the active indicator at zero width until a
+// resize or scroll accidentally forces a relayout.
+export function scheduleSliderRealignment() {
+    if (sliderRealignmentQueued) return;
+    sliderRealignmentQueued = true;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            sliderRealignmentQueued = false;
+            realignVisibleSliders();
+        });
+    });
+}
+
 export function initLeaderboardTabs() {
     document.querySelectorAll('.scoreboard-tabs').forEach(tabsEl => {
         const targetId = tabsEl.getAttribute('data-target');

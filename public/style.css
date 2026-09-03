@@ -474,7 +474,9 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
 .pause-menu h2,
 .pause-menu p { align-self: center; }
 .pause-menu h2, .game-over-menu > h2 { margin: 4px 0; font-size: 34px; }
-.pause-menu .secondary-action { margin-top: 10px; }
+.pause-menu #resumeButton { margin-top: 18px; }
+.pause-menu .secondary-action { margin-top: 16px; }
+.pause-menu #mainMenuPauseButton { margin-top: 5px; }
 #iosPrompt { position: fixed; z-index: 110; top: 20%; left: 50%; display: none; width: min(320px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--surface-border); border-radius: 16px; background: #1a1a20; box-shadow: var(--shadow); text-align: center; transform: translateX(-50%); }
 #iosPrompt p { font-size: 13px; line-height: 1.5; } #iosPrompt button { min-height: 40px; padding: 8px 16px; border: 0; border-radius: 10px; color: white; background: var(--danger); }
 

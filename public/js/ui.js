@@ -2,6 +2,7 @@
 
 import { dom } from './dom.js';
 import { state, constants } from './state.js';
+import { scheduleSliderRealignment } from './leaderboard.js';
 
 let toastTimer = null;
 
@@ -62,6 +63,7 @@ export function openSettingsModal() {
 export function closeSettingsModal() {
     if (!dom.settingsModal) return;
     dom.settingsModal.style.display = 'none';
+    scheduleSliderRealignment();
 }
 
 export function initSettingsUI() {

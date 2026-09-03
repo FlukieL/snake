@@ -14,7 +14,7 @@ import {
     playLoseLifeSound,
     applyMusicPitchForMode
 } from './audio.js';
-import { renderScoreboard, fetchHighScores, realignVisibleSliders } from './leaderboard.js';
+import { renderScoreboard, fetchHighScores, scheduleSliderRealignment } from './leaderboard.js';
 import { resetSubmitUI } from './auth.js';
 import { clearMenuFocus, focusFirstMenuItem } from './input.js';
 import { updateOfflineUI } from './offline.js';
@@ -216,11 +216,6 @@ function triggerGameOver() {
     // stopped and the Game Over screen's own scoreboard/sign-in section is
     // visible again - it was intentionally hidden during active gameplay.
     updateOfflineUI();
-    // Re-align the Game Over screen's own scoreboard tab-slider pills now
-    // that the screen is actually visible - they were positioned while
-    // display:none (offsetLeft/offsetWidth measure as 0 then), which left
-    // the active tab looking unselected until the window was resized.
-    requestAnimationFrame(realignVisibleSliders);
     // Give keyboard/gamepad navigation an obvious, immediate starting point
     // on the Game Over screen too, matching the pause screen's behavior.
     requestAnimationFrame(focusFirstMenuItem);
@@ -250,6 +245,10 @@ function triggerGameOver() {
         fetchHighScores('alltime', 'classic');
         fetchHighScores('weekly', 'classic');
     }
+
+    // The relevant panel was selected and its list rendered above. Wait for
+    // visibility and layout to settle before measuring its active-tab pill.
+    scheduleSliderRealignment();
 }
 
 // Updates the multiplier badge's flash speed every frame, independent of the
@@ -455,4 +454,5 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     // focus marker; the first keyboard/controller navigation input restores
     // focus to the active mode's Play button via moveMenuFocus().
     requestAnimationFrame(clearMenuFocus);
+    scheduleSliderRealignment();
 }
