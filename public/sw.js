@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v67';
+const CACHE_VERSION = 'v69';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -172,5 +172,12 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting();
+        return;
+    }
+
+    // The Settings screen reads its displayed version from this response,
+    // making CACHE_VERSION the sole release-version source of truth.
+    if (event.data === 'GET_VERSION') {
+        event.ports[0]?.postMessage({ type: 'VERSION', version: CACHE_VERSION });
     }
 });

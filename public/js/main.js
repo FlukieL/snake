@@ -127,11 +127,12 @@ function initMenuTilt() {
 
         // Use relative movement rather than the device's absolute pose. This
         // makes the resting position feel natural whether the phone is held
-        // upright or at a slight angle, while keeping the effect deliberately
-        // subtle (maximum 3 degrees on either axis).
-        const clamp = value => Math.max(-3, Math.min(3, value));
-        const tiltX = `${clamp((event.beta - baseline.beta) * -0.12).toFixed(1)}deg`;
-        const tiltY = `${clamp((event.gamma - baseline.gamma) * 0.12).toFixed(1)}deg`;
+        // upright or at a slight angle. The direction deliberately follows
+        // the device's movement, with a noticeable but still restrained
+        // maximum of 5 degrees on either axis.
+        const clamp = value => Math.max(-5, Math.min(5, value));
+        const tiltX = `${clamp((event.beta - baseline.beta) * 0.2).toFixed(1)}deg`;
+        const tiltY = `${clamp((event.gamma - baseline.gamma) * -0.2).toFixed(1)}deg`;
 
         // Sensors continuously emit tiny values while the phone is stationary.
         // Avoid redundant style writes, which can otherwise contend with the
@@ -240,8 +241,25 @@ function initPwaInstall() {
 function initServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
+    const versionElement = document.getElementById('settingsVersion');
+
+    function updateSettingsVersion(worker) {
+        if (!versionElement || !worker) return;
+
+        const channel = new MessageChannel();
+        channel.port1.onmessage = (event) => {
+            if (event.data?.type === 'VERSION' && event.data.version) {
+                versionElement.textContent = `Version ${event.data.version}`;
+            }
+        };
+        worker.postMessage('GET_VERSION', [channel.port2]);
+    }
+
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then((registration) => {
+            // Prefer the active worker registered for this app. On first load,
+            // controller may not exist until clients.claim() has completed.
+            updateSettingsVersion(navigator.serviceWorker.controller || registration.active);
             // If an updated service worker is already waiting (e.g. this tab was
             // open during a deploy), activate it immediately.
             if (registration.waiting) {
@@ -299,6 +317,7 @@ function initServiceWorker() {
         }
 
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            updateSettingsVersion(navigator.serviceWorker.controller);
             if (!hadControllerOnLoad) return;
             if (!sawUpdateInstalled) return;
 
