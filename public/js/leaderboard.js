@@ -96,11 +96,11 @@ function renderHighScores(listElement, scores, mode) {
         const rank = i + 2;
         const li = document.createElement('li');
 
+        const badge = createRankBadge(rank);
+        if (badge) li.appendChild(badge);
+
         const infoWrap = document.createElement('span');
         infoWrap.className = 'score-info';
-
-        const badge = createRankBadge(rank);
-        if (badge) infoWrap.appendChild(badge);
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'score-name';

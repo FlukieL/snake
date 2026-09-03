@@ -20,8 +20,15 @@ export function updateMuteButtonUI() {
             : state.musicVolume === 0.85
                 ? 'High'
                 : 'Medium';
+    const effectsLabel = state.effectsVolume === 0
+        ? 'Off'
+        : state.effectsVolume === 0.25
+            ? 'Low'
+            : state.effectsVolume === 0.85
+                ? 'High'
+                : 'Medium';
     setSettingValue(dom.muteMusicButton, musicLabel, state.musicMuted);
-    setSettingValue(dom.muteEffectsButton, state.effectsMuted ? 'Off' : 'On', state.effectsMuted);
+    setSettingValue(dom.muteEffectsButton, effectsLabel, state.effectsMuted);
 }
 
 export function updateNokiaModeUI() {

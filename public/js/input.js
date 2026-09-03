@@ -74,10 +74,8 @@ export function clearMenuFocus() {
     }
 }
 
-export function focusFirstMenuItem() {
-    const screen = getActiveMenuScreen();
-    const items = getMenuFocusables(screen);
-    if (!items.length) return;
+function getInitialMenuItem(screen, items) {
+    if (!items.length) return null;
 
     // On the main menu specifically, default focus to the active mode's
     // "Play" button rather than whichever element happens to be first in
@@ -89,13 +87,46 @@ export function focusFirstMenuItem() {
         const activePanel = Array.from(screen.querySelectorAll('.mode-panel'))
             .find(panel => panel.offsetParent !== null);
         const playButton = activePanel && activePanel.querySelector('.menu-button');
-        if (playButton && items.includes(playButton)) {
-            setMenuFocus(playButton);
-            return;
-        }
+        if (playButton && items.includes(playButton)) return playButton;
     }
 
-    setMenuFocus(items[0]);
+    return items[0];
+}
+
+export function focusFirstMenuItem() {
+    const screen = getActiveMenuScreen();
+    const items = getMenuFocusables(screen);
+    const firstItem = getInitialMenuItem(screen, items);
+    if (firstItem) setMenuFocus(firstItem);
+}
+
+// Activates an item owned by the active menu only. This is important for
+// modal overlays: a confirm press immediately after opening one must never
+// trigger the focused control behind it (for example, Exit to Main Menu).
+function activateFocusedMenuItem(screen) {
+    const items = getMenuFocusables(screen);
+    if (!items.length) return;
+
+    const activeElement = document.activeElement;
+    const target = items.includes(activeElement)
+        ? activeElement
+        : getInitialMenuItem(screen, items);
+
+    if (!target) return;
+    if (target !== activeElement) setMenuFocus(target);
+    target.click();
+}
+
+function dismissActiveMenu() {
+    if (dom.confirmExitModal?.offsetParent !== null) {
+        dom.cancelExitButton?.click();
+    } else if (dom.settingsModal?.offsetParent !== null) {
+        dom.settingsCloseButton?.click();
+    } else if (dom.powerupInfoModal?.offsetParent !== null) {
+        dom.powerupInfoCloseButton?.click();
+    } else if (state.gamePaused || (state.inGame && !state.gameOver)) {
+        togglePause();
+    }
 }
 
 // Moves keyboard/gamepad focus to the next/previous focusable item within
@@ -139,15 +170,8 @@ function initKeyboard() {
         const activeMenuScreen = getActiveMenuScreen();
 
         if (e.key === 'Escape') {
-            if (dom.confirmExitModal?.offsetParent !== null) {
-                dom.cancelExitButton?.click();
-            } else if (dom.settingsModal?.offsetParent !== null) {
-                dom.settingsCloseButton?.click();
-            } else if (dom.powerupInfoModal?.offsetParent !== null) {
-                dom.powerupInfoCloseButton?.click();
-            } else if (!state.gameOver) {
-                togglePause();
-            }
+            e.preventDefault();
+            dismissActiveMenu();
             return;
         }
 
@@ -161,10 +185,8 @@ function initKeyboard() {
                 case 'ArrowUp': case 'w': case 'W': e.preventDefault(); moveMenuFocus(-1); break;
                 case 'ArrowDown': case 's': case 'S': e.preventDefault(); moveMenuFocus(1); break;
                 case 'Enter': case ' ':
-                    if (document.activeElement && (document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A')) {
-                        e.preventDefault();
-                        document.activeElement.click();
-                    }
+                    e.preventDefault();
+                    activateFocusedMenuItem(activeMenuScreen);
                     break;
             }
             return;
@@ -248,11 +270,10 @@ function initGamepad() {
                     if (upPressed && !prevUp) moveMenuFocus(-1);
                     if (downPressed && !prevDown) moveMenuFocus(1);
                     if (gamepad.buttons[0].pressed && !previousGamepadState[gamepad.index].buttons[0]) {
-                        if (document.activeElement &&
-                            (document.activeElement.tagName === 'BUTTON' || document.activeElement.tagName === 'A') &&
-                            activeMenuScreen.contains(document.activeElement)) {
-                            document.activeElement.click();
-                        }
+                        activateFocusedMenuItem(activeMenuScreen);
+                    }
+                    if (gamepad.buttons[1].pressed && !previousGamepadState[gamepad.index].buttons[1]) {
+                        dismissActiveMenu();
                     }
                     previousGamepadState[gamepad.index] = {
                         buttons: gamepad.buttons.map(b => b.pressed),

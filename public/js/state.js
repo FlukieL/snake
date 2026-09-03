@@ -133,6 +133,7 @@ export const state = {
     // `musicMuted` remains for compatibility with existing game/audio checks.
     musicVolume: 0.25,
     musicMuted: false,
+    effectsVolume: 0.55,
     effectsMuted: false,
     nokiaMode: false,
     vibrationEnabled: true,
