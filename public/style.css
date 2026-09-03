@@ -441,6 +441,14 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
 
 .settings-content h2 { margin-bottom: 0; }
 .settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.settings-version {
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-align: center;
+}
 .setting-row {
     display: flex;
     align-items: center;
@@ -580,6 +588,11 @@ body.nokia-mode .settings-content h2 {
 }
 body.nokia-mode .settings-content .eyebrow {
     font-size: 14px;
+}
+body.nokia-mode .settings-version {
+    color: #2b2f1f;
+    font-size: 16px;
+    font-weight: 400;
 }
 body.nokia-mode .settings-content .icon-button {
     width: 48px;
