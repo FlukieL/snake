@@ -98,22 +98,30 @@ function initMenuTilt() {
 
     let listening = false;
     let baseline = null;
+    let tiltFrame = null;
+    let pendingOrientation = null;
+    let appliedTiltX = '0deg';
+    let appliedTiltY = '0deg';
 
     function resetTilt() {
         baseline = null;
-        menu.style.setProperty('--menu-tilt-x', '0deg');
-        menu.style.setProperty('--menu-tilt-y', '0deg');
+        pendingOrientation = null;
+        if (tiltFrame !== null) {
+            cancelAnimationFrame(tiltFrame);
+            tiltFrame = null;
+        }
+        appliedTiltX = '0deg';
+        appliedTiltY = '0deg';
+        menu.style.setProperty('--menu-tilt-x', appliedTiltX);
+        menu.style.setProperty('--menu-tilt-y', appliedTiltY);
     }
 
-    function applyTilt(event) {
-        if (document.visibilityState !== 'visible' || getComputedStyle(dom.startGameScreen).display === 'none') {
+    function renderTilt() {
+        tiltFrame = null;
+        const event = pendingOrientation;
+        pendingOrientation = null;
+        if (!event || document.visibilityState !== 'visible' || getComputedStyle(dom.startGameScreen).display === 'none') {
             resetTilt();
-            return;
-        }
-        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
-
-        if (!baseline) {
-            baseline = { beta: event.beta, gamma: event.gamma };
             return;
         }
 
@@ -122,10 +130,31 @@ function initMenuTilt() {
         // upright or at a slight angle, while keeping the effect deliberately
         // subtle (maximum 3 degrees on either axis).
         const clamp = value => Math.max(-3, Math.min(3, value));
-        const tiltX = clamp((event.beta - baseline.beta) * -0.12);
-        const tiltY = clamp((event.gamma - baseline.gamma) * 0.12);
-        menu.style.setProperty('--menu-tilt-x', `${tiltX.toFixed(2)}deg`);
-        menu.style.setProperty('--menu-tilt-y', `${tiltY.toFixed(2)}deg`);
+        const tiltX = `${clamp((event.beta - baseline.beta) * -0.12).toFixed(1)}deg`;
+        const tiltY = `${clamp((event.gamma - baseline.gamma) * 0.12).toFixed(1)}deg`;
+
+        // Sensors continuously emit tiny values while the phone is stationary.
+        // Avoid redundant style writes, which can otherwise contend with the
+        // nested mode and scoreboard-tab animations on mobile GPUs.
+        if (tiltX !== appliedTiltX) {
+            appliedTiltX = tiltX;
+            menu.style.setProperty('--menu-tilt-x', tiltX);
+        }
+        if (tiltY !== appliedTiltY) {
+            appliedTiltY = tiltY;
+            menu.style.setProperty('--menu-tilt-y', tiltY);
+        }
+    }
+
+    function applyTilt(event) {
+        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+        if (!baseline) {
+            baseline = { beta: event.beta, gamma: event.gamma };
+            return;
+        }
+
+        pendingOrientation = event;
+        if (tiltFrame === null) tiltFrame = requestAnimationFrame(renderTilt);
     }
 
     function startListening() {
