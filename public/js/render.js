@@ -64,27 +64,35 @@ export function triggerDigestionWave(fruitType) {
 }
 
 function updateAndGetActiveWaves(maxIndex, now) {
-    state.digestionWaves = state.digestionWaves.filter(wave => {
-        const elapsed = (now - wave.startTime) / 1000;
-        const pos = elapsed * constants.DIGESTION_WAVE_SPEED;
-        return pos - constants.DIGESTION_WAVE_WIDTH < maxIndex + 2;
-    });
-    return state.digestionWaves.map(wave => {
-        const elapsed = (now - wave.startTime) / 1000;
-        return { color: wave.color, pos: elapsed * constants.DIGESTION_WAVE_SPEED };
-    });
+    // Waves are short-lived, but this is called on every animation frame.
+    // Reuse their existing objects rather than filter()/map()-allocating
+    // replacement arrays and position objects continuously during gameplay.
+    for (let i = state.digestionWaves.length - 1; i >= 0; i--) {
+        const wave = state.digestionWaves[i];
+        const pos = ((now - wave.startTime) / 1000) * constants.DIGESTION_WAVE_SPEED;
+        if (pos - constants.DIGESTION_WAVE_WIDTH >= maxIndex + 2) {
+            state.digestionWaves.splice(i, 1);
+        } else {
+            wave.renderPosition = pos;
+        }
+    }
+    return state.digestionWaves;
 }
 
 function getSegmentOverlay(activeWaves, index) {
-    let best = null;
+    let bestWave = null;
+    let bestIntensity = 0;
     for (const wave of activeWaves) {
-        const dist = Math.abs(index - wave.pos);
+        const dist = Math.abs(index - wave.renderPosition);
         if (dist <= constants.DIGESTION_WAVE_WIDTH) {
             const intensity = 1 - dist / constants.DIGESTION_WAVE_WIDTH;
-            if (!best || intensity > best.intensity) best = { color: wave.color, intensity };
+            if (intensity > bestIntensity) {
+                bestWave = wave;
+                bestIntensity = intensity;
+            }
         }
     }
-    return best;
+    return bestWave ? { color: bestWave.color, intensity: bestIntensity } : null;
 }
 
 function drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -302,6 +310,51 @@ function drawFruit(ctx, now) {
     ctx.restore();
 }
 
+let nokiaBackdrop = null;
+let nokiaBackdropGridSize = 0;
+
+function drawNokiaBackdrop() {
+    const width = dom.canvas.width;
+    const height = dom.canvas.height;
+    const gridSize = state.gridSize;
+    const needsRedraw = !nokiaBackdrop
+        || nokiaBackdrop.width !== width
+        || nokiaBackdrop.height !== height
+        || nokiaBackdropGridSize !== gridSize;
+    if (!needsRedraw) return;
+
+    nokiaBackdrop = document.createElement('canvas');
+    nokiaBackdrop.width = width;
+    nokiaBackdrop.height = height;
+    nokiaBackdropGridSize = gridSize;
+    const backdropCtx = nokiaBackdrop.getContext('2d');
+    backdropCtx.clearRect(0, 0, width, height);
+    backdropCtx.save();
+    backdropCtx.globalAlpha = 0.06;
+    backdropCtx.strokeStyle = constants.NOKIA_PIXEL;
+    backdropCtx.lineWidth = 1;
+    const step = Math.max(2, gridSize / 8);
+    backdropCtx.beginPath();
+    for (let gx = 0; gx <= width; gx += step) {
+        backdropCtx.moveTo(gx, 0);
+        backdropCtx.lineTo(gx, height);
+    }
+    for (let gy = 0; gy <= height; gy += step) {
+        backdropCtx.moveTo(0, gy);
+        backdropCtx.lineTo(width, gy);
+    }
+    backdropCtx.stroke();
+    backdropCtx.restore();
+
+    backdropCtx.save();
+    backdropCtx.strokeStyle = constants.NOKIA_PIXEL;
+    backdropCtx.globalAlpha = 0.5;
+    backdropCtx.lineWidth = Math.max(1, gridSize * 0.06);
+    const inset = gridSize * 0.18;
+    backdropCtx.strokeRect(inset, inset, width - inset * 2, height - inset * 2);
+    backdropCtx.restore();
+}
+
 function drawNokiaScene(ctx) {
     const gridSize = state.gridSize;
     const pad = Math.max(1, gridSize * 0.12);
@@ -351,32 +404,10 @@ function drawNokiaScene(ctx) {
     ctx.lineTo(foodCx, foodCy + armLength);
     ctx.stroke();
 
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    ctx.strokeStyle = constants.NOKIA_PIXEL;
-    ctx.lineWidth = 1;
-    const step = Math.max(2, gridSize / 8);
-    for (let gx = 0; gx <= dom.canvas.width; gx += step) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, dom.canvas.height);
-        ctx.stroke();
-    }
-    for (let gy = 0; gy <= dom.canvas.height; gy += step) {
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(dom.canvas.width, gy);
-        ctx.stroke();
-    }
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = constants.NOKIA_PIXEL;
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = Math.max(1, gridSize * 0.06);
-    const inset = gridSize * 0.18;
-    ctx.strokeRect(inset, inset, dom.canvas.width - inset * 2, dom.canvas.height - inset * 2);
-    ctx.restore();
+    // The pixel grid and frame are static between resizes. Rasterizing them
+    // once avoids recreating hundreds of canvas paths every animation frame.
+    drawNokiaBackdrop();
+    ctx.drawImage(nokiaBackdrop, 0, 0);
 }
 
 function hexToRgb(hex) {
