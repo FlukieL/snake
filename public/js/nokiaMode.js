@@ -4,7 +4,7 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { loadBoolState, saveState } from './storage.js';
-import { updateNokiaModeUI } from './ui.js';
+import { closeSettingsModal, updateNokiaModeUI } from './ui.js';
 import { playNokiaToggleSound, setMusicVolume } from './audio.js';
 
 state.nokiaMode = loadBoolState('nokiaMode', false);
@@ -20,6 +20,10 @@ function toggleNokiaMode() {
     if (state.nokiaMode) {
         setMusicVolume(0);
     }
+
+    // The visual mode change is immediately obvious on the main screen;
+    // dismiss Preferences so the player returns there as soon as it toggles.
+    closeSettingsModal();
 }
 
 export function initNokiaMode() {

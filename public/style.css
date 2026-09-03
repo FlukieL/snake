@@ -569,8 +569,13 @@ body.nokia-mode .settings-content .setting-row strong {
 body.nokia-mode .settings-content .setting-row small {
     font-size: 16px;
 }
-body.nokia-mode .settings-content .setting-value {
+body.nokia-mode .settings-content .setting-value,
+body.nokia-mode .settings-content .setting-row.muted .setting-value,
+body.nokia-mode .settings-content .setting-row:hover .setting-value,
+body.nokia-mode .settings-content .setting-row:focus-visible .setting-value {
+    color: #2b2f1f !important;
     font-size: 19px;
+    font-weight: 400;
 }
 body.nokia-mode .settings-content .setting-row:hover,
 body.nokia-mode .settings-content .setting-row:focus-visible {
@@ -582,18 +587,6 @@ body.nokia-mode .settings-content .setting-row strong,
 body.nokia-mode .settings-content .setting-row small {
     color: inherit !important;
 }
-body.nokia-mode .settings-content .setting-value {
-    color: #2b2f1f !important;
-    font-weight: 700;
-}
-body.nokia-mode .settings-content .setting-row.muted .setting-value {
-    color: #7b1e1e !important;
-}
-body.nokia-mode .settings-content .setting-row:hover .setting-value,
-body.nokia-mode .settings-content .setting-row:focus-visible .setting-value {
-    color: #9ead86 !important;
-}
-
 /* The leaderboard normally celebrates top players with rainbow letters,
    colored medals and a gold trophy. Keep it strictly monochrome on the
    Nokia LCD theme, including the name colors injected inline by JS. */
@@ -615,7 +608,19 @@ body.nokia-mode .banner-letter {
     animation: none !important;
 }
 body.nokia-mode .banner-trophy {
-    filter: grayscale(1) contrast(1.7);
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+    color: #9ead86;
+    background: #2b2f1f;
+    font-size: 0;
+    text-align: center;
+}
+body.nokia-mode .banner-trophy::after {
+    content: '1';
+    color: #9ead86;
+    font-size: 17px;
+    line-height: 19px;
 }
 body.nokia-mode .rank-badge,
 body.nokia-mode .rank-silver,
