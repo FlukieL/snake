@@ -125,22 +125,14 @@ function initMenuTilt() {
             return;
         }
 
-        // Use relative movement rather than the device's absolute pose. This
-        // makes the resting position feel natural whether the phone is held
-        // upright or at a slight angle. The direction deliberately follows
-        // the device's movement, with a noticeable but still restrained
-        // maximum of 5 degrees on either axis.
+        // Use only the phone's side-to-side movement. Forward/back movement
+        // deliberately has no effect, keeping the menu rotation horizontal.
         const clamp = value => Math.max(-5, Math.min(5, value));
-        const tiltX = `${clamp((event.beta - baseline.beta) * 0.2).toFixed(1)}deg`;
         const tiltY = `${clamp((event.gamma - baseline.gamma) * -0.2).toFixed(1)}deg`;
 
         // Sensors continuously emit tiny values while the phone is stationary.
         // Avoid redundant style writes, which can otherwise contend with the
         // nested mode and scoreboard-tab animations on mobile GPUs.
-        if (tiltX !== appliedTiltX) {
-            appliedTiltX = tiltX;
-            menu.style.setProperty('--menu-tilt-x', tiltX);
-        }
         if (tiltY !== appliedTiltY) {
             appliedTiltY = tiltY;
             menu.style.setProperty('--menu-tilt-y', tiltY);
@@ -148,9 +140,9 @@ function initMenuTilt() {
     }
 
     function applyTilt(event) {
-        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+        if (!Number.isFinite(event.gamma)) return;
         if (!baseline) {
-            baseline = { beta: event.beta, gamma: event.gamma };
+            baseline = { gamma: event.gamma };
             return;
         }
 
