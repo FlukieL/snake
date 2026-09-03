@@ -593,6 +593,14 @@ body.nokia-mode .settings-content .setting-row small {
 body.nokia-mode .top-player-banner {
     border: 3px solid #2b2f1f !important;
     background: #9ead86 !important;
+    font-size: 17px;
+}
+body.nokia-mode .top-player-banner .score-name,
+body.nokia-mode .top-player-banner .score-value {
+    font-size: 17px;
+}
+body.nokia-mode .top-player-banner .score-date {
+    font-size: 14px;
 }
 body.nokia-mode .top-player-banner,
 body.nokia-mode .top-player-banner .score-name,
