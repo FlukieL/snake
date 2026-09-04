@@ -127,7 +127,7 @@ function initMenuTilt() {
 
         // Use only the phone's side-to-side movement. Forward/back movement
         // deliberately has no effect, keeping the menu rotation horizontal.
-        const clamp = value => Math.max(-5, Math.min(5, value));
+        const clamp = value => Math.max(-3, Math.min(3, value));
         const tiltY = `${clamp((event.gamma - baseline.gamma) * -0.2).toFixed(1)}deg`;
 
         // Sensors continuously emit tiny values while the phone is stationary.
