@@ -8,6 +8,7 @@ import { isOnline, onConnectivityChange } from './offline.js';
 
 const SCORES_PER_PAGE = 6;
 const PAGE_COUNT = 3;
+const inFlightLeaderboardLoads = new Map();
 
 function normalizeCachedPages(value) {
     if (Array.isArray(value)) return { 1: value };
@@ -176,7 +177,6 @@ function updatePager(listElement, page, totalPages) {
     const pager = pagerFor(listElement);
     if (!pager) return;
     pager.hidden = totalPages < 2;
-    pager.querySelector('.leaderboard-page-status').textContent = `Page ${page} of ${totalPages}`;
     pager.querySelectorAll('[data-leaderboard-page]').forEach(button => {
         const targetPage = Number(button.getAttribute('data-leaderboard-page'));
         button.classList.toggle('active', targetPage === page);
@@ -206,36 +206,45 @@ function renderActiveList(listElement, mode) {
     renderScoreboard(listElement, cacheFor(mode)[period][page] || [], mode, page);
 }
 
-export async function fetchHighScores(period, mode, page = 1) {
+export async function fetchHighScores(period, mode) {
     mode = mode || 'classic';
     const cache = cacheFor(mode);
     if (!cache[period]) cache[period] = {};
 
-    if (isOnline()) {
-        try {
-            const res = await fetch(`/api/scores?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}&page=${page}`);
-            if (!res.ok) throw new Error('Bad response');
-            const data = await res.json();
-            cache[period][page] = data.scores || [];
-            state.leaderboardTotalPages[mode][period] = Math.max(1, Math.min(PAGE_COUNT, Number(data.totalPages) || 1));
-            saveCachedHighScores(`${mode}_${period}`, cache[period]);
-        } catch (err) {
-            // Use the latest locally cached page while offline or on failure.
-        }
+    const loadKey = `${mode}:${period}`;
+    if (isOnline() && !inFlightLeaderboardLoads.has(loadKey)) {
+        inFlightLeaderboardLoads.set(loadKey, (async () => {
+            try {
+                // One response contains the complete three-page ranking snapshot.
+                // Page buttons therefore only read the local cache and cannot be
+                // affected by per-click network timing or out-of-order responses.
+                const res = await fetch(`/api/scores?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}&allPages=1`);
+                if (!res.ok) throw new Error('Bad response');
+                const data = await res.json();
+                for (let page = 1; page <= PAGE_COUNT; page++) {
+                    cache[period][page] = data.pages?.[page] || [];
+                }
+                state.leaderboardTotalPages[mode][period] = Math.max(1, Math.min(PAGE_COUNT, Number(data.totalPages) || 1));
+                saveCachedHighScores(`${mode}_${period}`, cache[period]);
+            } catch (err) {
+                // Use the latest locally cached pages while offline or on failure.
+            } finally {
+                inFlightLeaderboardLoads.delete(loadKey);
+            }
+        })());
     }
 
+    await inFlightLeaderboardLoads.get(loadKey);
+
     const active = activePeriodFor(mode);
-    const pages = activePageFor(mode);
     const els = listElementsFor(mode);
-    if (active[els.homeKey] === period && pages[els.homeKey] === page) renderActiveList(els.home, mode);
-    if (active[els.gameOverKey] === period && pages[els.gameOverKey] === page) renderActiveList(els.gameOver, mode);
+    if (active[els.homeKey] === period) renderActiveList(els.home, mode);
+    if (active[els.gameOverKey] === period) renderActiveList(els.gameOver, mode);
 }
 
 function refetchAllOnReconnect() {
     ['classic', 'levels'].forEach(mode => {
-        ['alltime', 'weekly'].forEach(period => {
-            for (let page = 1; page <= PAGE_COUNT; page++) fetchHighScores(period, mode, page);
-        });
+        ['alltime', 'weekly'].forEach(period => fetchHighScores(period, mode));
     });
 }
 
@@ -246,8 +255,8 @@ export function refreshAfterSubmit(newScores, mode = 'classic') {
     const els = listElementsFor(mode);
     renderActiveList(els.home, mode);
     renderActiveList(els.gameOver, mode);
-    fetchHighScores('alltime', mode, 1);
-    fetchHighScores('weekly', mode, 1);
+    fetchHighScores('alltime', mode);
+    fetchHighScores('weekly', mode);
 }
 
 function ensureSlider(tabsEl) {
@@ -306,7 +315,6 @@ function initPagination() {
             const period = activePeriodFor(mode)[listElement.id];
             activePageFor(mode)[listElement.id] = page;
             renderActiveList(listElement, mode);
-            fetchHighScores(period, mode, page);
         });
     });
 }
@@ -327,7 +335,7 @@ export function initLeaderboardTabs() {
             activePeriodFor(mode)[targetId] = period;
             activePageFor(mode)[targetId] = 1;
             renderActiveList(listElement, mode);
-            fetchHighScores(period, mode, 1);
+            fetchHighScores(period, mode);
         }));
     });
 

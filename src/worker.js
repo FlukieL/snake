@@ -141,7 +141,7 @@ function scoreOrderFor(mode) {
         : 'score DESC, created_at ASC, id ASC';
 }
 
-async function getTopScores(db, period, mode, table, page) {
+async function getTopScores(db, period, mode, table, page = 1, limit = SCORES_PER_PAGE) {
     const modeFilter = mode === 'levels' ? 'levels' : 'classic';
     const periodFilter = period === 'weekly' ? " AND created_at >= datetime('now', '-7 days')" : '';
     const order = scoreOrderFor(mode);
@@ -170,7 +170,7 @@ async function getTopScores(db, period, mode, table, page) {
         SELECT COUNT(*) AS total FROM ranked_scores WHERE user_rank = 1`;
 
     const [{ results }, count] = await Promise.all([
-        db.prepare(scoresQuery).bind(modeFilter, SCORES_PER_PAGE, offset).all(),
+        db.prepare(scoresQuery).bind(modeFilter, limit, offset).all(),
         db.prepare(countQuery).bind(modeFilter).first('total')
     ]);
     return { scores: results || [], total: Number(count) || 0 };
@@ -182,21 +182,46 @@ async function handleGetScores(request, env) {
         const period = url.searchParams.get('period') === 'weekly' ? 'weekly' : 'alltime';
         const modeParam = url.searchParams.get('mode');
         const mode = VALID_MODES.includes(modeParam) ? modeParam : 'classic';
+        const allPages = url.searchParams.get('allPages') === '1';
         const requestedPage = Number(url.searchParams.get('page'));
         const page = Number.isInteger(requestedPage)
             ? Math.max(1, Math.min(LEADERBOARD_PAGE_COUNT, requestedPage))
             : 1;
         const table = getScoresTable(env);
         await ensureUserIdColumn(env.DB, table);
+
+        // Fetching all three pages as one ranked query gives every page a
+        // consistent snapshot and avoids a network/database request whenever
+        // the player taps a pagination button.
+        if (allPages) {
+            const { scores, total } = await getTopScores(
+                env.DB,
+                period,
+                mode,
+                table,
+                1,
+                MAX_LEADERBOARD_SCORES
+            );
+            const pages = {};
+            for (let currentPage = 1; currentPage <= LEADERBOARD_PAGE_COUNT; currentPage++) {
+                const start = (currentPage - 1) * SCORES_PER_PAGE;
+                pages[currentPage] = scores.slice(start, start + SCORES_PER_PAGE);
+            }
+            return jsonResponse({
+                pages,
+                period,
+                mode,
+                totalPages: LEADERBOARD_PAGE_COUNT,
+                total: Math.min(total, MAX_LEADERBOARD_SCORES)
+            });
+        }
+
         const { scores, total } = await getTopScores(env.DB, period, mode, table, page);
         return jsonResponse({
             scores,
             period,
             mode,
             page,
-            // Always expose all three requested pages. Pages without enough
-            // distinct players return an empty score list and render the
-            // usual "No scores yet" state on the client.
             totalPages: LEADERBOARD_PAGE_COUNT,
             total: Math.min(total, MAX_LEADERBOARD_SCORES)
         });
