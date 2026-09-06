@@ -356,6 +356,11 @@ export function initializeGame(mode) {
     beginScoreIntegrityRun(state.gameRunId);
     const sessionId = ++state.gameSessionId;
     state.inGame = true;
+    // Every new session may be started from either the main-menu Play button
+    // or the Game Over Restart button. Game Over hides this control, so make
+    // the shared initialization path authoritative for restoring it rather
+    // than relying on only the main-menu route to do so.
+    dom.pauseButton.style.display = 'block';
     // Hide the offline banner (if shown) now that we're actively playing -
     // it overlaps the fixed top-right Pause button and gameplay itself
     // doesn't depend on the network. It reappears automatically on Game
