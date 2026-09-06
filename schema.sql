@@ -10,6 +10,6 @@ CREATE TABLE IF NOT EXISTS scores (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_scores_score ON scores (score DESC);
 CREATE INDEX IF NOT EXISTS idx_scores_user_mode_score ON scores (user_id, mode, score DESC);
+CREATE INDEX IF NOT EXISTS idx_scores_score ON scores (score DESC);
 CREATE INDEX IF NOT EXISTS idx_scores_mode_level_score ON scores (mode, level DESC, score DESC);
