@@ -234,16 +234,18 @@ function triggerGameOver() {
         }
         if (classicScoreboard) classicScoreboard.style.display = 'none';
         if (levelsScoreboard) levelsScoreboard.style.display = 'block';
-        renderScoreboard(dom.levelsGameOverHighScoreList, state.cachedLevelsScoresByPeriod[state.activeLevelsPeriod.levelsGameOverHighScoreList], 'levels');
-        fetchHighScores('alltime', 'levels');
-        fetchHighScores('weekly', 'levels');
+        const levelsPeriod = state.activeLevelsPeriod.levelsGameOverHighScoreList;
+        const levelsPage = state.activeLevelsLeaderboardPage.levelsGameOverHighScoreList;
+        renderScoreboard(dom.levelsGameOverHighScoreList, state.cachedLevelsScoresByPeriod[levelsPeriod][levelsPage] || [], 'levels', levelsPage);
+        fetchHighScores(levelsPeriod, 'levels', levelsPage);
     } else {
         if (dom.finalLevel) dom.finalLevel.style.display = 'none';
         if (classicScoreboard) classicScoreboard.style.display = 'block';
         if (levelsScoreboard) levelsScoreboard.style.display = 'none';
-        renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod[state.activePeriod.gameOverHighScoreList], 'classic');
-        fetchHighScores('alltime', 'classic');
-        fetchHighScores('weekly', 'classic');
+        const classicPeriod = state.activePeriod.gameOverHighScoreList;
+        const classicPage = state.activeLeaderboardPage.gameOverHighScoreList;
+        renderScoreboard(dom.gameOverHighScoreList, state.cachedScoresByPeriod[classicPeriod][classicPage] || [], 'classic', classicPage);
+        fetchHighScores(classicPeriod, 'classic', classicPage);
     }
 
     // The relevant panel was selected and its list rendered above. Wait for
@@ -280,7 +282,10 @@ function updateMultiplierBadgeFlash(now) {
     dom.multiplierBadge.style.opacity = pulse.toFixed(2);
 }
 
-export function gameLoop(currentTime) {
+export function gameLoop(currentTime, sessionId = state.gameSessionId) {
+    // A queued animation frame from an abandoned/previous run must never
+    // mutate a newer session after the player returns to the main menu.
+    if (sessionId !== state.gameSessionId || !state.inGame) return;
     if (!state.lastTickTime) state.lastTickTime = currentTime;
     if (!state.gameOver && !state.gamePaused) {
         const tickInterval = state.gameMode === 'levels' ? state.tickInterval : constants.TICK_INTERVAL;
@@ -294,7 +299,7 @@ export function gameLoop(currentTime) {
         draw(t);
         if (state.gameMode === 'levels') updateMultiplierBadgeFlash(currentTime);
     }
-    if (!state.gameOver) requestAnimationFrame(gameLoop);
+    if (!state.gameOver) requestAnimationFrame(time => gameLoop(time, sessionId));
 }
 
 export function initializeGame(mode) {
@@ -313,6 +318,7 @@ export function initializeGame(mode) {
     state.gameOver = false;
     state.gamePaused = false;
     state.scoreSubmitted = false;
+    const sessionId = ++state.gameSessionId;
     state.inGame = true;
     // Hide the offline banner (if shown) now that we're actively playing -
     // it overlaps the fixed top-right Pause button and gameplay itself
@@ -346,7 +352,7 @@ export function initializeGame(mode) {
     dom.gameMusic.loop = true;
     state.lastTickTime = 0;
     dom.pauseScreen.style.display = 'none';
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(time => gameLoop(time, sessionId));
 }
 
 // The floating top-right button always reads "Pause" - it only ever opens
@@ -383,7 +389,6 @@ function resumeGame() {
     state.gamePaused = false;
     dom.pauseScreen.style.display = 'none';
     if (!state.musicMuted) dom.gameMusic.play().catch(() => {});
-    requestAnimationFrame(gameLoop);
 }
 
 export function startGameSession(mode) {
@@ -411,6 +416,10 @@ export function exitToMainMenuFromPause(submitCurrentScoreIfNeeded) {
 }
 
 export function returnToMainMenu(submitCurrentScoreIfNeeded) {
+    // Invalidate any scheduled frame from the run being abandoned before
+    // resetting display state. This also protects a future Start click from
+    // a stale loop running concurrently with the new game.
+    state.gameSessionId++;
     state.inGame = false;
     // Must reset gameOver/gamePaused here too (not just inGame) - both
     // exitToMainMenuFromPause() and the Game Over screen's "Main Menu"

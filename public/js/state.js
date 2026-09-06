@@ -123,6 +123,9 @@ export const state = {
     gamePaused: false,
     scoreSubmitted: false,
     inGame: false,
+    // Incremented whenever a run begins or is abandoned. Animation frames
+    // capture this value so an old loop can never restart after a menu return.
+    gameSessionId: 0,
     directionQueue: [],
     lastTickTime: 0,
     foodSpawnTime: 0,
@@ -145,8 +148,12 @@ export const state = {
     googleIdToken: null,
     googleDisplayName: null,
 
-    cachedScoresByPeriod: { alltime: [], weekly: [] },
+    // Cached leaderboard data is grouped by period and page (1–3). Keeping
+    // each page separate avoids overwriting page one when a player browses.
+    cachedScoresByPeriod: { alltime: { 1: [] }, weekly: { 1: [] } },
     activePeriod: { highScoreList: 'alltime', gameOverHighScoreList: 'alltime' },
+    activeLeaderboardPage: { highScoreList: 1, gameOverHighScoreList: 1 },
+    leaderboardTotalPages: { classic: { alltime: 1, weekly: 1 }, levels: { alltime: 1, weekly: 1 } },
 
     // Active "digestion wave" animations - each is { color, startTime }. A wave's
     // travel position through the snake's body is computed purely from elapsed
@@ -180,6 +187,7 @@ export const state = {
         invincibleUntil: 0
     },
 
-    cachedLevelsScoresByPeriod: { alltime: [], weekly: [] },
-    activeLevelsPeriod: { levelsHighScoreList: 'alltime', levelsGameOverHighScoreList: 'alltime' }
+    cachedLevelsScoresByPeriod: { alltime: { 1: [] }, weekly: { 1: [] } },
+    activeLevelsPeriod: { levelsHighScoreList: 'alltime', levelsGameOverHighScoreList: 'alltime' },
+    activeLevelsLeaderboardPage: { levelsHighScoreList: 1, levelsGameOverHighScoreList: 1 }
 };

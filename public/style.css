@@ -291,6 +291,59 @@ button:focus-visible, a:focus-visible, .menu-focus-visible {
     transform: translateX(1px) scale(.99);
 }
 .scoreboard li.loading, .scoreboard li.empty { justify-content: center; color: var(--text-muted); }
+.score-rank {
+    width: 18px;
+    flex: 0 0 18px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+}
+.leaderboard-pagination[hidden] { display: none; }
+.leaderboard-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+}
+.leaderboard-pagination button {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px 8px;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    background: var(--surface-color);
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: 800;
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.leaderboard-pagination button:hover:not(:disabled),
+.leaderboard-pagination button:focus-visible {
+    border-color: var(--accent);
+    color: var(--text-color);
+    background: var(--surface-strong);
+    transform: translateY(-1px);
+    outline: none;
+}
+.leaderboard-pagination button.active {
+    border-color: var(--accent);
+    color: #111118;
+    background: var(--accent);
+}
+.leaderboard-pagination button:disabled {
+    cursor: default;
+    opacity: .34;
+}
+.leaderboard-page-status {
+    min-width: 70px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
 .loading-dot {
     width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted);
     animation: loadingPulse 1s ease-in-out infinite;

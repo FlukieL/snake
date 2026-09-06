@@ -10,7 +10,9 @@
 
 const MAX_NAME_LENGTH = 16;
 const MAX_SCORE = 100000; // sanity cap to reject bogus submissions
-const TOP_N = 10;
+const SCORES_PER_PAGE = 6;
+const LEADERBOARD_PAGE_COUNT = 3;
+const MAX_LEADERBOARD_SCORES = SCORES_PER_PAGE * LEADERBOARD_PAGE_COUNT;
 const GOOGLE_CLIENT_ID = '600684655874-jfqakqf9snp67eikljkfsl3qmbtopin5.apps.googleusercontent.com';
 const GOOGLE_CERTS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 
@@ -117,22 +119,61 @@ function getScoresTable(env) {
     return table === 'scores_dev' ? 'scores_dev' : 'scores';
 }
 
-async function getTopScores(db, period, mode, table) {
-    if (mode === 'levels') {
-        // Levels mode ranks by score first, with highest level reached as a
-        // tiebreaker (e.g. two players tied on score are ranked by whoever
-        // got further before running out of lives).
-        const query = period === 'weekly'
-            ? `SELECT name, score, level, created_at FROM ${table} WHERE mode = 'levels' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1`
-            : `SELECT name, score, level, created_at FROM ${table} WHERE mode = 'levels' ORDER BY score DESC, level DESC, created_at ASC LIMIT ?1`;
-        const { results } = await db.prepare(query).bind(TOP_N).all();
-        return results || [];
+async function ensureUserIdColumn(db, table) {
+    // Existing D1 databases were created before user_id existed. SQLite has
+    // no ADD COLUMN IF NOT EXISTS, so attempt the additive migration and
+    // ignore its harmless duplicate-column result on subsequent requests.
+    try {
+        await db.prepare(`ALTER TABLE ${table} ADD COLUMN user_id TEXT`).run();
+    } catch (err) {
+        // The column already exists, or the table was created from the new schema.
     }
-    const query = period === 'weekly'
-        ? `SELECT name, score, created_at FROM ${table} WHERE mode = 'classic' AND created_at >= datetime('now', '-7 days') ORDER BY score DESC, created_at ASC LIMIT ?1`
-        : `SELECT name, score, created_at FROM ${table} WHERE mode = 'classic' ORDER BY score DESC, created_at ASC LIMIT ?1`;
-    const { results } = await db.prepare(query).bind(TOP_N).all();
-    return results || [];
+    try {
+        await db.prepare(`CREATE INDEX IF NOT EXISTS idx_${table}_user_mode_score ON ${table} (user_id, mode, score DESC)`).run();
+    } catch (err) {
+        // The query remains correct even if an index cannot be created.
+    }
+}
+
+function scoreOrderFor(mode) {
+    return mode === 'levels'
+        ? 'score DESC, level DESC, created_at ASC, id ASC'
+        : 'score DESC, created_at ASC, id ASC';
+}
+
+async function getTopScores(db, period, mode, table, page) {
+    const modeFilter = mode === 'levels' ? 'levels' : 'classic';
+    const periodFilter = period === 'weekly' ? " AND created_at >= datetime('now', '-7 days')" : '';
+    const order = scoreOrderFor(mode);
+    const offset = (page - 1) * SCORES_PER_PAGE;
+    // user_id is Google OpenID Connect's immutable `sub` claim. Legacy rows
+    // have no ID, so group those by their displayed name as a best-effort
+    // fallback while all new submissions use the verified account identity.
+    const ranked = `
+        WITH ranked_scores AS (
+            SELECT name, score, level, created_at, id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY COALESCE(NULLIF(user_id, ''), 'legacy:' || name)
+                    ORDER BY ${order}
+                ) AS user_rank
+            FROM ${table}
+            WHERE mode = ?1${periodFilter}
+        )
+    `;
+    const scoresQuery = `${ranked}
+        SELECT name, score, level, created_at
+        FROM ranked_scores
+        WHERE user_rank = 1
+        ORDER BY ${order}
+        LIMIT ?2 OFFSET ?3`;
+    const countQuery = `${ranked}
+        SELECT COUNT(*) AS total FROM ranked_scores WHERE user_rank = 1`;
+
+    const [{ results }, count] = await Promise.all([
+        db.prepare(scoresQuery).bind(modeFilter, SCORES_PER_PAGE, offset).all(),
+        db.prepare(countQuery).bind(modeFilter).first('total')
+    ]);
+    return { scores: results || [], total: Number(count) || 0 };
 }
 
 async function handleGetScores(request, env) {
@@ -141,9 +182,24 @@ async function handleGetScores(request, env) {
         const period = url.searchParams.get('period') === 'weekly' ? 'weekly' : 'alltime';
         const modeParam = url.searchParams.get('mode');
         const mode = VALID_MODES.includes(modeParam) ? modeParam : 'classic';
+        const requestedPage = Number(url.searchParams.get('page'));
+        const page = Number.isInteger(requestedPage)
+            ? Math.max(1, Math.min(LEADERBOARD_PAGE_COUNT, requestedPage))
+            : 1;
         const table = getScoresTable(env);
-        const scores = await getTopScores(env.DB, period, mode, table);
-        return jsonResponse({ scores, period, mode });
+        await ensureUserIdColumn(env.DB, table);
+        const { scores, total } = await getTopScores(env.DB, period, mode, table, page);
+        return jsonResponse({
+            scores,
+            period,
+            mode,
+            page,
+            // Always expose all three requested pages. Pages without enough
+            // distinct players return an empty score list and render the
+            // usual "No scores yet" state on the client.
+            totalPages: LEADERBOARD_PAGE_COUNT,
+            total: Math.min(total, MAX_LEADERBOARD_SCORES)
+        });
     } catch (err) {
         return jsonResponse({ error: 'Failed to load scores' }, 500);
     }
@@ -190,12 +246,13 @@ async function handlePostScore(request, env) {
 
     try {
         const table = getScoresTable(env);
+        await ensureUserIdColumn(env.DB, table);
         await env.DB
-            .prepare(`INSERT INTO ${table} (name, score, mode, level) VALUES (?1, ?2, ?3, ?4)`)
-            .bind(name, score, mode, level)
+            .prepare(`INSERT INTO ${table} (name, user_id, score, mode, level) VALUES (?1, ?2, ?3, ?4, ?5)`)
+            .bind(name, googlePayload.sub, score, mode, level)
             .run();
 
-        const scores = await getTopScores(env.DB, 'alltime', mode, table);
+        const { scores } = await getTopScores(env.DB, 'alltime', mode, table, 1);
         return jsonResponse({ scores, mode }, 201);
     } catch (err) {
         return jsonResponse({ error: 'Failed to save score' }, 500);

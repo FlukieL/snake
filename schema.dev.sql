@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS scores_dev (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    user_id TEXT,
     score INTEGER NOT NULL,
     mode TEXT NOT NULL DEFAULT 'classic',
     level INTEGER NOT NULL DEFAULT 0,
@@ -13,4 +14,5 @@ CREATE TABLE IF NOT EXISTS scores_dev (
 );
 
 CREATE INDEX IF NOT EXISTS idx_scores_dev_score ON scores_dev (score DESC);
+CREATE INDEX IF NOT EXISTS idx_scores_dev_user_mode_score ON scores_dev (user_id, mode, score DESC);
 CREATE INDEX IF NOT EXISTS idx_scores_dev_mode_level_score ON scores_dev (mode, level DESC, score DESC);
