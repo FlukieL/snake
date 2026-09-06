@@ -6,6 +6,7 @@ import { dom } from './dom.js';
 import { state, constants } from './state.js';
 import { refreshAfterSubmit } from './leaderboard.js';
 import { isOnline, onConnectivityChange } from './offline.js';
+import { isScoreSubmissionTrusted } from './antiCheat.js';
 
 export function resetSubmitUI() {
     // This function is also called on connectivity changes, so it must only
@@ -81,6 +82,12 @@ async function submitScore(scoreValue, runId) {
 export function submitCurrentScoreIfNeeded() {
     if (state.scoreSubmitted || state.scoreSubmissionInProgress || state.score <= 0) return;
     if (!state.gameRunId) return; // a score can only belong to an initialized run
+    if (!isScoreSubmissionTrusted(state.gameRunId, state.score)) {
+        // Do not send a mutable/forged score value to the leaderboard. This
+        // is client-side deterrence, not a replacement for server validation.
+        showScoreSubmitError('Score could not be verified');
+        return;
+    }
     if (!state.googleIdToken) return; // can't submit without a verified identity
     if (!isOnline()) return; // no point attempting a submission that's certain to fail
     state.scoreSubmitted = true;

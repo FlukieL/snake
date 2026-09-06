@@ -19,6 +19,7 @@ import { resetSubmitUI } from './auth.js';
 import { clearMenuFocus, focusFirstMenuItem } from './input.js';
 import { updateOfflineUI } from './offline.js';
 import { vibrateDeath, vibrateFruit, vibratePowerup } from './haptics.js';
+import { beginScoreIntegrityRun, recordVerifiedFruitScore } from './antiCheat.js';
 import {
     resetLevelsState,
     onFruitEatenInLevelsMode,
@@ -167,6 +168,7 @@ function update() {
     if (head.x === state.food.x && head.y === state.food.y) {
         const points = state.gameMode === 'levels' ? getMultiplierPoints() : 1;
         state.score += points;
+        recordVerifiedFruitScore(points, state.score);
         dom.scoreCounter.textContent = state.score;
         dom.scoreCounter.classList.add('animateScore');
         vibrateFruit();
@@ -351,6 +353,7 @@ export function initializeGame(mode) {
     state.scoreSubmitted = false;
     state.scoreSubmissionInProgress = false;
     state.gameRunId = createGameRunId();
+    beginScoreIntegrityRun(state.gameRunId);
     const sessionId = ++state.gameSessionId;
     state.inGame = true;
     // Hide the offline banner (if shown) now that we're actively playing -
