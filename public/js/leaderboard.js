@@ -96,8 +96,12 @@ function renderHighScores(listElement, scores, mode, page) {
         return;
     }
 
-    scores.forEach((entry, i) => {
-        const rank = (page - 1) * SCORES_PER_PAGE + i + 1;
+    // Page one's first score is already presented prominently in the trophy
+    // banner. Exclude it from the regular list so the same player/score is
+    // not rendered twice, while preserving its real leaderboard rank.
+    const listOffset = page === 1 ? 1 : 0;
+    scores.slice(listOffset).forEach((entry, i) => {
+        const rank = (page - 1) * SCORES_PER_PAGE + listOffset + i + 1;
         const li = document.createElement('li');
         li.className = 'score-entry';
         li.tabIndex = 0;
