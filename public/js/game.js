@@ -259,6 +259,26 @@ function triggerGameOver() {
 // expiring, giving a clear "hurry up" cue right before it runs out rather
 // than flickering the entire time it's active.
 const MULTIPLIER_FLASH_WINDOW = 3500; // ms before expiry when flashing begins
+let resizeFrame = null;
+
+function handleGameResize() {
+    // Mobile browsers can emit many resize events while their address bar
+    // expands/collapses. Coalesce them into one canvas resize per frame.
+    if (!state.inGame || resizeFrame !== null) return;
+    resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        if (state.inGame) resizeCanvas();
+    });
+}
+
+function stopGameResizeHandling() {
+    window.removeEventListener('resize', handleGameResize);
+    if (resizeFrame !== null) {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = null;
+    }
+}
+
 function updateMultiplierBadgeFlash(now) {
     if (!dom.multiplierBadge || dom.multiplierBadge.style.display === 'none') return;
     const remaining = state.effects.multiplierUntil - now;
@@ -397,7 +417,10 @@ export function startGameSession(mode) {
     dom.gameHud.style.display = 'flex';
     resizeCanvas();
     initializeGame(mode);
-    window.addEventListener('resize', resizeCanvas);
+    // A stable callback is deduplicated by addEventListener, unlike the old
+    // per-session anonymous registration that accumulated after every return
+    // to the menu and degraded mobile responsiveness.
+    window.addEventListener('resize', handleGameResize);
     dom.pauseButton.style.display = 'block';
 }
 
@@ -421,6 +444,7 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     // a stale loop running concurrently with the new game.
     state.gameSessionId++;
     state.inGame = false;
+    stopGameResizeHandling();
     // Must reset gameOver/gamePaused here too (not just inGame) - both
     // exitToMainMenuFromPause() and the Game Over screen's "Main Menu"
     // button call into this function without clearing state.gameOver
@@ -457,11 +481,9 @@ export function returnToMainMenu(submitCurrentScoreIfNeeded) {
     if (dom.livesBadge) dom.livesBadge.style.display = 'none';
     if (dom.multiplierBadge) dom.multiplierBadge.style.display = 'none';
 
-    // A pointer exit should return to a visually neutral menu. Leaving the
-    // pause-screen button focused made Play look selected immediately, while
-    // the pointer could simultaneously hover a score tab. Clear that stale
-    // focus marker; the first keyboard/controller navigation input restores
-    // focus to the active mode's Play button via moveMenuFocus().
-    requestAnimationFrame(clearMenuFocus);
+    // Clear stale focus before returning the Play button to the user. This
+    // must be synchronous: the old deferred cleanup could run after a fast
+    // mobile tap on Play and blur that newly activated control.
+    clearMenuFocus();
     scheduleSliderRealignment();
 }
