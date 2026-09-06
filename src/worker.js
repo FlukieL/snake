@@ -151,28 +151,56 @@ async function getTopScores(db, period, mode, table, page = 1, limit = SCORES_PE
     const periodFilter = period === 'weekly' ? " AND created_at >= datetime('now', '-7 days')" : '';
     const order = scoreOrderFor(mode);
     const offset = (page - 1) * SCORES_PER_PAGE;
-    // user_id is Google OpenID Connect's immutable `sub` claim. Legacy rows
-    // have no ID, so group those by their displayed name as a best-effort
-    // fallback while all new submissions use the verified account identity.
+    const higherScore = mode === 'levels'
+        ? `(higher.score > current.score
+            OR (higher.score = current.score AND (
+                higher.level > current.level
+                OR (higher.level = current.level AND (
+                    higher.created_at < current.created_at
+                    OR (higher.created_at = current.created_at AND higher.id < current.id)
+                ))
+            )))`
+        : `(higher.score > current.score
+            OR (higher.score = current.score AND (
+                higher.created_at < current.created_at
+                OR (higher.created_at = current.created_at AND higher.id < current.id)
+            )))`;
+
+    // A visible leaderboard person is identified by either their verified
+    // Google account ID or their normalized display name. This intentionally
+    // lets a modern account-backed score replace an older legacy score that
+    // has only a name, while also retaining account-ID deduplication if a
+    // player later changes their Google display name.
     const ranked = `
-        WITH ranked_scores AS (
-            SELECT name, score, level, created_at, id,
-                ROW_NUMBER() OVER (
-                    PARTITION BY COALESCE(NULLIF(user_id, ''), 'legacy:' || name)
-                    ORDER BY ${order}
-                ) AS user_rank
+        WITH eligible_scores AS (
+            SELECT name, user_id, score, level, created_at, id
             FROM ${table}
             WHERE mode = ?1${periodFilter}
+        ),
+        ranked_scores AS (
+            SELECT current.name, current.score, current.level, current.created_at, current.id
+            FROM eligible_scores AS current
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM eligible_scores AS higher
+                WHERE (
+                    (
+                        NULLIF(higher.user_id, '') IS NOT NULL
+                        AND NULLIF(higher.user_id, '') = NULLIF(current.user_id, '')
+                    )
+                    OR LOWER(TRIM(higher.name)) = LOWER(TRIM(current.name))
+                )
+                AND ${higherScore}
+            )
         )
     `;
     const scoresQuery = `${ranked}
         SELECT name, score, level, created_at
         FROM ranked_scores
-        WHERE user_rank = 1
         ORDER BY ${order}
         LIMIT ?2 OFFSET ?3`;
     const countQuery = `${ranked}
-        SELECT COUNT(*) AS total FROM ranked_scores WHERE user_rank = 1`;
+        SELECT COUNT(*) AS total FROM ranked_scores`;
 
     const [{ results }, count] = await Promise.all([
         db.prepare(scoresQuery).bind(modeFilter, limit, offset).all(),

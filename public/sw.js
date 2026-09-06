@@ -6,7 +6,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION on every deploy that changes cached files,
 // so old caches are cleaned up and clients pick up fresh assets.
-const CACHE_VERSION = 'v76';
+const CACHE_VERSION = 'v77';
 const CACHE_NAME = `snake-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
