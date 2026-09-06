@@ -93,8 +93,15 @@ function initMenuButtons() {
 function initMenuTilt() {
     const menu = document.querySelector('.main-menu');
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const coarsePointerQuery = window.matchMedia('(pointer: coarse)');
     const orientationEvent = window.DeviceOrientationEvent;
-    if (!menu || !orientationEvent || motionQuery.matches) return;
+
+    // On touch devices, this starts only after the first Play tap grants
+    // motion permission. A continuously changing 3D transform on the menu
+    // then causes unreliable WebKit hit-testing after Pause → Exit → Menu,
+    // making the next Play tap appear to do nothing. Keep mobile controls on
+    // a stable, untransformed layer; the effect remains available on desktop.
+    if (!menu || !orientationEvent || motionQuery.matches || coarsePointerQuery.matches) return;
 
     let listening = false;
     let baseline = null;
