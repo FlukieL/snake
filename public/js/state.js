@@ -122,6 +122,11 @@ export const state = {
     gameOver: false,
     gamePaused: false,
     scoreSubmitted: false,
+    scoreSubmissionInProgress: false,
+    // Generated exactly once when a run starts and sent with its score. It
+    // remains stable across click/retry attempts so the API can make score
+    // submission idempotent.
+    gameRunId: null,
     inGame: false,
     // Incremented whenever a run begins or is abandoned. Animation frames
     // capture this value so an old loop can never restart after a menu return.

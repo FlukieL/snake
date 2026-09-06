@@ -34,6 +34,17 @@ import {
     respawnSnakeAfterLifeLost
 } from './levels.js';
 
+function createGameRunId() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    return [...bytes].map((byte, index) => {
+        const hex = byte.toString(16).padStart(2, '0');
+        return [4, 6, 8, 10].includes(index) ? `-${hex}` : hex;
+    }).join('');
+}
+
 function isCellOccupied(x, y) {
     if (state.snake.some(s => s.x === x && s.y === y)) return true;
     if (state.gameMode === 'levels' && state.obstacles.some(o => o.x === x && o.y === y)) return true;
@@ -338,6 +349,8 @@ export function initializeGame(mode) {
     state.gameOver = false;
     state.gamePaused = false;
     state.scoreSubmitted = false;
+    state.scoreSubmissionInProgress = false;
+    state.gameRunId = createGameRunId();
     const sessionId = ++state.gameSessionId;
     state.inGame = true;
     // Hide the offline banner (if shown) now that we're actively playing -

@@ -119,17 +119,22 @@ function getScoresTable(env) {
     return table === 'scores_dev' ? 'scores_dev' : 'scores';
 }
 
-async function ensureUserIdColumn(db, table) {
-    // Existing D1 databases were created before user_id existed. SQLite has
-    // no ADD COLUMN IF NOT EXISTS, so attempt the additive migration and
-    // ignore its harmless duplicate-column result on subsequent requests.
-    try {
-        await db.prepare(`ALTER TABLE ${table} ADD COLUMN user_id TEXT`).run();
-    } catch (err) {
-        // The column already exists, or the table was created from the new schema.
+async function ensureScoreColumns(db, table) {
+    // Existing D1 databases were created before user_id/run_id existed.
+    // SQLite has no ADD COLUMN IF NOT EXISTS, so attempt each additive
+    // migration and ignore its harmless duplicate-column result.
+    for (const column of ['user_id', 'run_id']) {
+        try {
+            await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT`).run();
+        } catch (err) {
+            // The column already exists, or the table was created from the new schema.
+        }
     }
     try {
         await db.prepare(`CREATE INDEX IF NOT EXISTS idx_${table}_user_mode_score ON ${table} (user_id, mode, score DESC)`).run();
+        // Nullable run_id keeps legacy records valid; every new authenticated
+        // submission has one and therefore may be inserted only once per user.
+        await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_user_run_id ON ${table} (user_id, run_id) WHERE run_id IS NOT NULL`).run();
     } catch (err) {
         // The query remains correct even if an index cannot be created.
     }
@@ -188,7 +193,7 @@ async function handleGetScores(request, env) {
             ? Math.max(1, Math.min(LEADERBOARD_PAGE_COUNT, requestedPage))
             : 1;
         const table = getScoresTable(env);
-        await ensureUserIdColumn(env.DB, table);
+        await ensureScoreColumns(env.DB, table);
 
         // Fetching all three pages as one ranked query gives every page a
         // consistent snapshot and avoids a network/database request whenever
@@ -245,6 +250,15 @@ async function handlePostScore(request, env) {
 
     const mode = VALID_MODES.includes(body && body.mode) ? body.mode : 'classic';
 
+    // A UUID is generated at the beginning of each game run. Requiring it
+    // lets the database safely collapse duplicate clicks/retries into one
+    // score submission, while still allowing the same user to submit later
+    // scores from genuinely separate runs.
+    const runId = typeof (body && body.runId) === 'string' ? body.runId : '';
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(runId)) {
+        return jsonResponse({ error: 'Invalid game run' }, 400);
+    }
+
     const rawLevel = Number(body && body.level);
     const level = mode === 'levels' && Number.isFinite(rawLevel) && rawLevel >= 0 && Number.isInteger(rawLevel)
         ? rawLevel
@@ -271,14 +285,15 @@ async function handlePostScore(request, env) {
 
     try {
         const table = getScoresTable(env);
-        await ensureUserIdColumn(env.DB, table);
-        await env.DB
-            .prepare(`INSERT INTO ${table} (name, user_id, score, mode, level) VALUES (?1, ?2, ?3, ?4, ?5)`)
-            .bind(name, googlePayload.sub, score, mode, level)
+        await ensureScoreColumns(env.DB, table);
+        const insert = await env.DB
+            .prepare(`INSERT OR IGNORE INTO ${table} (name, user_id, run_id, score, mode, level) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`)
+            .bind(name, googlePayload.sub, runId, score, mode, level)
             .run();
 
         const { scores } = await getTopScores(env.DB, 'alltime', mode, table, 1);
-        return jsonResponse({ scores, mode }, 201);
+        const inserted = Number(insert.meta?.changes) === 1;
+        return jsonResponse({ scores, mode, duplicate: !inserted }, inserted ? 201 : 200);
     } catch (err) {
         return jsonResponse({ error: 'Failed to save score' }, 500);
     }

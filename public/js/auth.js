@@ -8,7 +8,19 @@ import { refreshAfterSubmit } from './leaderboard.js';
 import { isOnline, onConnectivityChange } from './offline.js';
 
 export function resetSubmitUI() {
-    state.scoreSubmitted = false;
+    // This function is also called on connectivity changes, so it must only
+    // refresh presentation. Submission state is reset exclusively when a new
+    // game run starts in initializeGame().
+    if (state.scoreSubmissionInProgress) {
+        dom.submitScoreButton.disabled = true;
+        dom.submitScoreButton.textContent = 'Submitting…';
+        return;
+    }
+    if (state.scoreSubmitted) {
+        dom.submitScoreButton.disabled = true;
+        dom.submitScoreButton.textContent = 'Submitted';
+        return;
+    }
     // While offline, submission is impossible regardless of sign-in status -
     // disable the button and make that clear, rather than letting the
     // player tap "Submit Score" only to hit a network error.
@@ -22,14 +34,17 @@ export function resetSubmitUI() {
 }
 
 function showScoreSubmitError(message) {
+    state.scoreSubmissionInProgress = false;
     dom.submitScoreButton.disabled = false;
     dom.submitScoreButton.textContent = message;
     setTimeout(() => {
+        if (state.scoreSubmitted || state.scoreSubmissionInProgress) return;
+        dom.submitScoreButton.disabled = !state.googleIdToken || !isOnline();
         dom.submitScoreButton.textContent = state.googleIdToken ? 'Submit Score' : 'Sign in with Google to submit';
     }, 3000);
 }
 
-async function submitScore(scoreValue) {
+async function submitScore(scoreValue, runId) {
     const mode = state.gameMode || 'classic';
     try {
         const res = await fetch('/api/scores', {
@@ -37,6 +52,7 @@ async function submitScore(scoreValue) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 idToken: state.googleIdToken,
+                runId,
                 score: scoreValue,
                 mode,
                 level: mode === 'levels' ? state.level : undefined
@@ -46,25 +62,32 @@ async function submitScore(scoreValue) {
         if (!res.ok) {
             // Server rejected (e.g. invalid/expired token) - surface it and don't fall back
             // locally, so a rejected/invalid submission never appears in the leaderboard.
-            showScoreSubmitError(data.error || 'Could not submit score');
             state.scoreSubmitted = false;
+            showScoreSubmitError(data.error || 'Could not submit score');
             return;
         }
+        state.scoreSubmissionInProgress = false;
+        dom.submitScoreButton.disabled = true;
+        dom.submitScoreButton.textContent = 'Submitted';
         refreshAfterSubmit(data.scores, mode);
     } catch (err) {
         // Network failure: we deliberately do NOT fake a local entry here, since without
         // contacting the server we can't have a verified name.
-        showScoreSubmitError('Network error - could not submit score');
         state.scoreSubmitted = false;
+        showScoreSubmitError('Network error - could not submit score');
     }
 }
 
 export function submitCurrentScoreIfNeeded() {
-    if (state.scoreSubmitted || state.score <= 0) return;
+    if (state.scoreSubmitted || state.scoreSubmissionInProgress || state.score <= 0) return;
+    if (!state.gameRunId) return; // a score can only belong to an initialized run
     if (!state.googleIdToken) return; // can't submit without a verified identity
     if (!isOnline()) return; // no point attempting a submission that's certain to fail
     state.scoreSubmitted = true;
-    submitScore(state.score);
+    state.scoreSubmissionInProgress = true;
+    dom.submitScoreButton.disabled = true;
+    dom.submitScoreButton.textContent = 'Submitting…';
+    submitScore(state.score, state.gameRunId);
 }
 
 function handleGoogleCredential(response) {
@@ -79,15 +102,12 @@ function handleGoogleCredential(response) {
     dom.signedInAsEl.textContent = `Signed in as ${state.googleDisplayName}`;
     dom.signedInAsEl.style.display = 'block';
     dom.googleSignInContainer.style.display = 'none';
-    dom.submitScoreButton.disabled = false;
-    dom.submitScoreButton.textContent = 'Submit Score';
+    resetSubmitUI();
 
     // Auto-submit the pending score as soon as the player signs in, so they don't
     // need a separate manual click after authenticating.
     if (state.gameOver && state.score > 0 && !state.scoreSubmitted) {
         submitCurrentScoreIfNeeded();
-        dom.submitScoreButton.disabled = true;
-        dom.submitScoreButton.textContent = 'Submitted';
     }
 }
 
@@ -124,10 +144,8 @@ function initGoogleSignIn() {
 export function initAuth() {
     initGoogleSignIn();
     dom.submitScoreButton.addEventListener('click', () => {
-        if (!state.googleIdToken) return;
+        if (!state.googleIdToken || state.scoreSubmissionInProgress || state.scoreSubmitted) return;
         submitCurrentScoreIfNeeded();
-        dom.submitScoreButton.disabled = true;
-        dom.submitScoreButton.textContent = 'Submitted';
     });
 
     // Whenever connectivity changes, refresh the submit button's
