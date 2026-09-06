@@ -108,13 +108,15 @@ function renderHighScores(listElement, scores, mode, page) {
         li.tabIndex = 0;
         li.setAttribute('aria-label', `${entry.name}, rank ${rank}, ${mode === 'levels' ? `level ${entry.level}, score ${entry.score}` : `score ${entry.score}`}`);
 
-        const rankLabel = document.createElement('span');
-        rankLabel.className = 'score-rank';
-        rankLabel.textContent = rank;
-        li.appendChild(rankLabel);
-
         const badge = createRankBadge(rank);
-        if (badge) li.appendChild(badge);
+        if (badge) {
+            li.appendChild(badge);
+        } else {
+            const rankLabel = document.createElement('span');
+            rankLabel.className = 'score-rank';
+            rankLabel.textContent = rank;
+            li.appendChild(rankLabel);
+        }
 
         const infoWrap = document.createElement('span');
         infoWrap.className = 'score-info';
